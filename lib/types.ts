@@ -63,7 +63,7 @@ export type PaymentRequest = {
 
 export type AppSession = {
   profile: Profile;
-  token: string;
+  initData: string;
 };
 
 declare global {

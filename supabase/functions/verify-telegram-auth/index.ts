@@ -28,7 +28,6 @@ Deno.serve(async (req) => {
     if (error) throw error;
 
     return json({
-      token: Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       profile: {
         ...data,
         is_admin: adminIds().includes(String(user.id))

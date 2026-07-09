@@ -17,7 +17,7 @@ type View = "feed" | "post" | "my-ads" | "admin";
 type Toast = { type: "success" | "error"; message: string } | null;
 
 const demoSession: AppSession = {
-  token: "demo",
+  initData: "demo",
   profile: {
     id: "00000000-0000-0000-0000-000000000001",
     telegram_id: "demo",
@@ -59,7 +59,7 @@ export default function Home() {
         const initData = initTelegram();
         const verified = await verifyTelegram(initData);
         const isPublicAdmin = appConfig.adminTelegramIds.includes(verified.profile.telegram_id);
-        setSession({ ...verified, token: initData, profile: { ...verified.profile, is_admin: Boolean(verified.profile.is_admin || isPublicAdmin) } });
+        setSession({ ...verified, initData, profile: { ...verified.profile, is_admin: Boolean(verified.profile.is_admin || isPublicAdmin) } });
         setLanguage(verified.profile.language ?? "am");
       } catch {
         setToast({ type: "error", message: "Telegram login failed" });
@@ -271,9 +271,9 @@ export default function Home() {
       headers: {
         "Content-Type": "application/json",
         apikey: appConfig.supabaseAnonKey,
-        Authorization: `Bearer ${session?.token ?? appConfig.supabaseAnonKey}`,
+        Authorization: `Bearer ${appConfig.supabaseAnonKey}`,
         "x-telegram-id": session?.profile.telegram_id ?? "",
-        "x-telegram-init-data": session?.token ?? ""
+        "x-telegram-init-data": session?.initData ?? ""
       },
       body: JSON.stringify(body)
     });

@@ -1,0 +1,51 @@
+Tossa Gebaya: Telegram Mini App
+1. Project Overview & Tech Stack
+Goal: build a mobile-only Telegram Mini App (TMA) for the Dessie community and around to post simple listings for items for sale and job openings.
+Core philosophy: Absolute simplicity. No carts, no checkout, no resume uploads. 
+Tech Stack:
+Frontend: React / Next.js with Tailwind CSS (designed strictly for mobile screens inside Telegram). 
+Backend/Database: Supabase (PostgreSQL) for rapid implementation of tables, storage, and auto-generated APIs.
+2. Key Logic & Safeguards for Low-Tech Audiences
+No Password Rules: Rely entirely on window.Telegram.WebApp.initData to verify who the user is. If they open the mini app, they are automatically logged in.
+Data Minimization: Ensure images are heavily compressed on the frontend before uploading to Supabase to keep image loading lightning fast on weak 3G/4G networks in Dessie.
+
+3.feature breakdown 
+3.1. Regular User Role (Buyers & Job Seekers)
+Zero-Friction Launch: Open the app instantly inside Telegram. Auto-authenticates via Telegram ID—no emails, passwords, or registration forms.
+Language Toggle: One-click switch between Amharic (default) and English.
+Dual-Tab Feed: Easily switch between browsing "Items for Sale" and "Job Openings."
+Bottom-Sheet Listing Detail Drawer :Instead of navigating away from the feed, open a quick-slide bottom drawer to see details of a card(lowers perceived load times).
+Media Gallery: Simple image swipe container if multiple images exist.
+Localized Filtering: simple Filter listings and sorting.
+Instant Direct Contact: Every listing has two big buttons:
+Call: Triggers the phone’s native dialer instantly.
+Telegram: Drops the user directly into a private chat with the poster.
+3.2. Poster Role (Sellers & Employers)
+Dynamic Ad Posting Form: A single form that morphs based on category:
+Items: Title, Price,catagory, location, Condition, and Image Upload(maximum 4).
+Jobs: Job Title, Salary(optional), location,  Job Type (e.g., part time, full time), and text-only requirements.
+Automatic Contact Binding: The app pulls their Telegram username automatically; the poster only needs to type their phone number.
+Usage Safeguards:
+Free Limit: Restricted to 3 active posts per week.
+Auto-Expiration: a warning telegram notification is sent to the poster at the 5th day and the Post will automatically be deleted after 7 days to keep the board fresh..
+"My Ads" Portal: A personal dashboard to view active/expired posts and take down an ad instantly once sold or filled.
+Validates all incoming listing data (regex for phone numbers, length constraints for strings)
+feedback Loops: Every action (Posting, Payment, Deleting) must have an immediate "Success" or "Error" notification. If a user uploads an image, show a loading spinner—never leave the screen blank.
+"Are You Sure?" Dialogs: For destructive actions (like "Delete My Ad"), always use a confirmation popup.
+
+
+Manual Upgrades (Pay-as-you-go):
+Options to buy an Extra Post Slot, Extend an Ad for 7 more days, or Boost an Ad to the top of the feed.If is_boosted is true, wrap the card in a striking border, pin it to the top of the feed, and place a tiny star badge on it 
+Screenshot Payment Flow: The app displays my business Telebirr/CBE account details. The user uploads a screenshot of their transaction receipt and submit.
+3.3. Admin Role (Platform Owner)
+Whitelisted Access: A secure /admin view that is shown only if the user's Telegram ID matches my hardcoded ID list.
+Manual Payment Verification Queue: A dashboard displaying all pending paid upgrades. Shows the listing details, and a zoomable view of the uploaded payment screenshot.
+One-Click Actions:
+Approve: Instantly applies the requested upgrade (pins the ad, extends it, or grants an extra posting slot).
+Reject: Deletes the transaction request if the screenshot is fake or incorrect.
+3.4. Monetization technique:
+Free Tier: Max 3 active posts per week. Every post auto-deletes after 7 days.
+Paid Add-ons (No Subscriptions):
+Extend: 25 ETB to renew an ad for 7 more days.
+Boost: 50 ETB to pin the ad to the top of the feed for 3 days.
+Overflow: 25 ETB to bypass the weekly limit for one single post.

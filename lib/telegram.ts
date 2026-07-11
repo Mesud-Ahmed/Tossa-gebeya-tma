@@ -17,13 +17,14 @@ export async function verifyTelegram(initData: string): Promise<AppSession> {
     headers: {
       "Content-Type": "application/json",
       apikey: appConfig.supabaseAnonKey,
-      Authorization: `Bearer ${appConfig.supabaseAnonKey}`
+      Authorization: `Bearer ${appConfig.supabaseAnonKey}`,
     },
-    body: JSON.stringify({ initData })
+    body: JSON.stringify({ initData }),
   });
 
   if (!response.ok) {
-    throw new Error("Telegram authentication failed");
+    const message = await response.text();
+    throw new Error(message || "Telegram authentication failed");
   }
 
   return response.json();

@@ -10,6 +10,10 @@ export function initTelegram() {
   return webApp?.initData ?? "";
 }
 
+export function hasTelegramHash(initData: string) {
+  return new URLSearchParams(initData).has("hash");
+}
+
 export async function verifyTelegram(initData: string): Promise<AppSession> {
   const endpoint = functionUrl("verify-telegram-auth");
   const response = await fetch(endpoint, {

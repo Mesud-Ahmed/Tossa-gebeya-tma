@@ -19,7 +19,7 @@ import { functionUrl } from "@/lib/function-url";
 import { t } from "@/lib/i18n";
 import { compressListingImage } from "@/lib/images";
 import { supabase, getStoragePublicUrl } from "@/lib/supabase";
-import { initTelegram, verifyTelegram } from "@/lib/telegram";
+import { hasTelegramHash, initTelegram, verifyTelegram } from "@/lib/telegram";
 import type {
   AppSession,
   Language,
@@ -79,6 +79,12 @@ export default function Home() {
         }
 
         const initData = initTelegram();
+        if (!hasTelegramHash(initData)) {
+          throw new Error(
+            "Missing Telegram login data. Open this page from the bot's Mini App button after redeploying.",
+          );
+        }
+
         const fallbackUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
         const fallbackAdminId = fallbackUser?.id?.toString();
         const isPublicAdmin = appConfig.adminTelegramIds.includes(

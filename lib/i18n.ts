@@ -2,7 +2,7 @@ import type { Language } from "./types";
 
 export const copy = {
   am: {
-    appName: "ቶሳ ገበያ",
+    appName: "ጦሳ ገበያ",
     items: "የሚሸጡ እቃዎች",
     jobs: "ስራዎች",
     post: "ለጥፍ",
@@ -19,7 +19,7 @@ export const copy = {
     overflow: "ተጨማሪ ፖስት",
     receipt: "የክፍያ ስክሪንሾት",
     submit: "አስገባ",
-    loading: "በመጫን ላይ...",
+    loading: "loading...",
     empty: "እስካሁን ምንም የለም",
     success: "ተሳክቷል",
     error: "ችግር ተፈጥሯል"

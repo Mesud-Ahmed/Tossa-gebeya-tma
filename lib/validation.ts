@@ -13,7 +13,6 @@ export const listingInputSchema = z
     category: z.string().trim().max(50).optional(),
     location: z.string().trim().min(2).max(80),
     condition: z.string().trim().max(40).optional(),
-    jobType: z.string().trim().max(40).optional(),
     phone: z.string().trim().regex(PHONE_REGEX),
     imagePaths: z.array(z.string()).max(4).default([])
   })

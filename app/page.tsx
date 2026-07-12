@@ -3,16 +3,23 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
+  AlertCircle,
   Briefcase,
+  CheckCircle2,
+  Eye,
   Filter,
+  Image as ImageIcon,
   Languages,
+  LoaderCircle,
   Megaphone,
   Plus,
   ReceiptText,
   Search,
   Star,
   Trash2,
+  X,
 } from "lucide-react";
+import { ZodError } from "zod";
 import { appConfig, assertPublicConfig } from "@/lib/config";
 import { categoriesFor, categoryLabel } from "@/lib/categories";
 import { functionUrl } from "@/lib/function-url";
@@ -35,7 +42,7 @@ import {
 } from "@/lib/validation";
 
 type View = "feed" | "post" | "my-ads" | "admin";
-type Toast = { type: "success" | "error"; message: string } | null;
+type Toast = { type: "success" | "error"; title: string; message: string } | null;
 
 const demoSession: AppSession = {
   initData: "demo",
@@ -58,11 +65,14 @@ export default function Home() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [myListings, setMyListings] = useState<Listing[]>([]);
   const [selected, setSelected] = useState<Listing | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [busyMessage, setBusyMessage] = useState("");
   const [toast, setToast] = useState<Toast>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [payments, setPayments] = useState<PaymentRequest[]>([]);
 
   const configured = assertPublicConfig();
@@ -129,7 +139,7 @@ export default function Home() {
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Telegram login failed";
-        setToast({ type: "error", message });
+        setToast({ type: "error", title: "Login failed", message });
       } finally {
         setLoading(false);
       }
@@ -201,7 +211,7 @@ export default function Home() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      setToast({ type: "error", message: error.message });
+      setToast({ type: "error", title: "Could not load listings", message: error.message });
       return;
     }
 
@@ -220,6 +230,7 @@ export default function Home() {
     } catch (error) {
       setToast({
         type: "error",
+        title: "Could not load your ads",
         message: error instanceof Error ? error.message : labels.error,
       });
     }
@@ -238,6 +249,8 @@ export default function Home() {
   async function createListing(formData: FormData) {
     if (!session) return;
     setBusy(true);
+    setBusyMessage("Preparing your post...");
+    setFieldErrors({});
     try {
       const type = formData.get("type") as ListingType;
       const files = Array.from(formData.getAll("images")).filter(
@@ -271,7 +284,6 @@ export default function Home() {
         category: formData.get("category") || undefined,
         location: formData.get("location"),
         condition: formData.get("condition") || undefined,
-        jobType: formData.get("jobType") || undefined,
         phone: formData.get("phone"),
         imagePaths,
       });
@@ -287,21 +299,36 @@ export default function Home() {
         ]);
       }
 
-      setToast({ type: "success", message: labels.success });
+      setToast({
+        type: "success",
+        title: "Post published",
+        message: type === "item" ? "Your item is now visible in the feed." : "Your job opening is now visible in the feed.",
+      });
       setView("my-ads");
     } catch (error) {
+      if (error instanceof ZodError) {
+        const nextErrors: Record<string, string> = {};
+        for (const issue of error.issues) {
+          const key = issue.path[0]?.toString();
+          if (key) nextErrors[key] = issue.message;
+        }
+        setFieldErrors(nextErrors);
+      }
       setToast({
         type: "error",
-        message: error instanceof Error ? error.message : labels.error,
+        title: "Please check the form",
+        message: formatError(error, labels.error),
       });
     } finally {
       setBusy(false);
+      setBusyMessage("");
     }
   }
 
   async function deleteListing(listing: Listing) {
     if (!window.confirm("Are you sure?")) return;
     setBusy(true);
+    setBusyMessage("Deleting your ad...");
     try {
       if (configured) {
         await callFunction("delete-listing", { listingId: listing.id });
@@ -314,20 +341,23 @@ export default function Home() {
           ),
         );
       }
-      setToast({ type: "success", message: labels.success });
+      setToast({ type: "success", title: "Ad deleted", message: "Your ad has been removed from the public feed." });
     } catch (error) {
       setToast({
         type: "error",
-        message: error instanceof Error ? error.message : labels.error,
+        title: "Delete failed",
+        message: formatError(error, labels.error),
       });
     } finally {
       setBusy(false);
+      setBusyMessage("");
     }
   }
 
   async function requestUpgrade(formData: FormData) {
     if (!session) return;
     setBusy(true);
+    setBusyMessage("Submitting your payment request...");
     try {
       const upgradeType = formData.get("upgradeType") as UpgradeType;
       const listingId = formData.get("listingId")?.toString() || null;
@@ -352,20 +382,24 @@ export default function Home() {
 
       setToast({
         type: "success",
-        message: `${labels.success}: ${upgradeAmounts[upgradeType]} ETB`,
+        title: "Payment request submitted",
+        message: `Admin will review your ${upgradeAmounts[upgradeType]} ETB upgrade request.`,
       });
     } catch (error) {
       setToast({
         type: "error",
-        message: error instanceof Error ? error.message : labels.error,
+        title: "Payment request failed",
+        message: formatError(error, labels.error),
       });
     } finally {
       setBusy(false);
+      setBusyMessage("");
     }
   }
 
   async function reviewPayment(id: string, action: "approve" | "reject") {
     setBusy(true);
+    setBusyMessage(action === "approve" ? "Approving request..." : "Rejecting request...");
     try {
       await callFunction("admin-review-payment", {
         paymentRequestId: id,
@@ -373,14 +407,16 @@ export default function Home() {
       });
       await loadPayments();
       await loadFeed();
-      setToast({ type: "success", message: labels.success });
+      setToast({ type: "success", title: action === "approve" ? "Request approved" : "Request rejected", message: "The payment queue has been updated." });
     } catch (error) {
       setToast({
         type: "error",
-        message: error instanceof Error ? error.message : labels.error,
+        title: "Review failed",
+        message: formatError(error, labels.error),
       });
     } finally {
       setBusy(false);
+      setBusyMessage("");
     }
   }
 
@@ -403,15 +439,15 @@ export default function Home() {
 
   if (loading) {
     return (
-      <main className="mobile-shell grid place-items-center p-6 text-sm text-ink">
-        {labels.loading}
+      <main className="mobile-shell grid place-items-center bg-[radial-gradient(circle_at_top,#fff7df,transparent_34%),linear-gradient(180deg,#f4f6f3,#e8efe9)] p-6 text-sm text-ink">
+        <LoadingState label={labels.loading} />
       </main>
     );
   }
 
   return (
-    <main className="mobile-shell pb-24">
-      <header className="sticky top-0 z-20 border-b border-black/10 bg-mist/95 px-4 pb-3 pt-4 backdrop-blur">
+    <main className="mobile-shell min-h-dvh bg-[radial-gradient(circle_at_16%_0%,#ffe6a9,transparent_28%),radial-gradient(circle_at_100%_20%,#d7efe8,transparent_30%),linear-gradient(180deg,#f8faf5,#eef3ef)] pb-24">
+      <header className="sticky top-0 z-20 border-b border-black/10 bg-mist/90 px-4 pb-3 pt-4 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs text-ink/60">Dessie</p>
@@ -478,7 +514,7 @@ export default function Home() {
       )}
 
       {view === "post" && (
-        <PostForm busy={busy} language={language} onSubmit={createListing} />
+        <PostForm busy={busy} fieldErrors={fieldErrors} language={language} onSubmit={createListing} />
       )}
       {view === "my-ads" && (
         <MyAds
@@ -526,13 +562,17 @@ export default function Home() {
         <ListingSheet
           listing={selected}
           language={language}
+          onImagePreview={setImagePreview}
           onClose={() => setSelected(null)}
         />
       )}
+      {imagePreview && (
+        <ImagePreview src={imagePreview} onClose={() => setImagePreview(null)} />
+      )}
       {toast && <ToastView toast={toast} onClose={() => setToast(null)} />}
       {busy && (
-        <div className="fixed inset-0 z-40 grid place-items-center bg-white/50 text-sm font-bold">
-          {labels.loading}
+        <div className="fixed inset-0 z-40 grid place-items-center bg-white/70 text-sm font-bold backdrop-blur-sm">
+          <LoadingState label={busyMessage || labels.loading} />
         </div>
       )}
     </main>
@@ -667,10 +707,12 @@ function ListingGrid({
 function ListingSheet({
   listing,
   language,
+  onImagePreview,
   onClose,
 }: {
   listing: Listing;
   language: Language;
+  onImagePreview: (src: string) => void;
   onClose: () => void;
 }) {
   const username = listing.telegram_username?.replace("@", "");
@@ -689,20 +731,27 @@ function ListingSheet({
             ? listing.listing_images
             : [{ id: "blank", public_url: "" } as any]
           ).map((image) => (
-            <div
+            <button
               key={image.id}
-              className="grid h-52 min-w-full place-items-center overflow-hidden rounded-lg bg-mist"
+              className="relative grid h-52 min-w-full place-items-center overflow-hidden rounded-lg bg-mist"
+              type="button"
+              onClick={() => image.public_url && onImagePreview(image.public_url)}
             >
               {image.public_url ? (
+                <>
                 <img
                   className="h-full w-full object-cover"
                   src={image.public_url}
                   alt=""
                 />
+                <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink shadow">
+                  <Eye size={18} />
+                </span>
+                </>
               ) : (
-                <Megaphone className="text-ink/35" />
+                <ImageIcon className="text-ink/35" />
               )}
-            </div>
+            </button>
           ))}
         </div>
         <h2 className="mt-4 text-2xl font-black">{listing.title}</h2>
@@ -731,15 +780,17 @@ function ListingSheet({
 
 function PostForm({
   busy,
+  fieldErrors,
   language,
   onSubmit,
 }: {
   busy: boolean;
+  fieldErrors: Record<string, string>;
   language: Language;
   onSubmit: (formData: FormData) => void;
 }) {
   const [type, setType] = useState<ListingType>("item");
-  const formCopy = postCopy[language];
+  const formCopy = cleanPostCopy[language];
   return (
     <form
       className="space-y-3 p-4"
@@ -764,6 +815,7 @@ function PostForm({
       <Field
         name="title"
         placeholder={type === "item" ? formCopy.itemTitle : formCopy.jobTitle}
+        error={fieldErrors.title}
         required
       />
       <SelectField name="category" label={formCopy.category} required>
@@ -774,12 +826,14 @@ function PostForm({
           </option>
         ))}
       </SelectField>
+      <FieldError message={fieldErrors.category} />
       {type === "item" ? (
         <>
           <Field
             name="price"
             placeholder={formCopy.price}
             type="number"
+            error={fieldErrors.price}
             required
           />
           <SelectField name="condition" label={formCopy.condition}>
@@ -799,17 +853,17 @@ function PostForm({
         </>
       ) : (
         <>
-          <Field name="salary" placeholder={formCopy.salary} type="number" />
-          <Field name="jobType" placeholder={formCopy.jobType} />
+          <Field name="salary" placeholder={formCopy.salary} type="number" error={fieldErrors.salary} />
         </>
       )}
-      <Field name="location" placeholder={formCopy.location} required />
-      <Field name="phone" placeholder={formCopy.phone} required />
+      <Field name="location" placeholder={formCopy.location} error={fieldErrors.location} required />
+      <Field name="phone" placeholder={formCopy.phone} error={fieldErrors.phone} required />
       <textarea
-        className="min-h-28 w-full rounded-lg border border-black/10 bg-white p-3 outline-none"
+        className={`min-h-28 w-full rounded-lg border bg-white p-3 outline-none ${fieldErrors.description ? "border-red-300 ring-2 ring-red-100" : "border-black/10"}`}
         name="description"
         placeholder={type === "job" ? formCopy.requirements : formCopy.details}
       />
+      <FieldError message={fieldErrors.description} />
       <button
         className="h-12 w-full rounded-lg bg-leaf font-black text-white disabled:opacity-60"
         disabled={busy}
@@ -820,26 +874,73 @@ function PostForm({
   );
 }
 
+const cleanPostCopy = {
+  am: {
+    sellItem: "እቃ ለመሸጥ",
+    hireWorker: "ስራ ለመለጠፍ",
+    itemTitle: "የእቃው ርዕስ",
+    jobTitle: "የስራው ርዕስ",
+    category: "ምድብ",
+    price: "ዋጋ ETB",
+    salary: "ደመወዝ ETB (አማራጭ)",
+    condition: "ሁኔታ",
+    new: "አዲስ",
+    used: "ያገለገለ",
+    images: "ፎቶዎች፣ ከፍተኛ 4",
+    location: "አካባቢ",
+    phone: "ስልክ ለምሳሌ 0912345678",
+    requirements: "መስፈርቶች",
+    details: "ዝርዝር",
+  },
+  en: {
+    sellItem: "Sell an item",
+    hireWorker: "Post a job",
+    itemTitle: "Item title",
+    jobTitle: "Job title",
+    category: "Category",
+    price: "Price ETB",
+    salary: "Salary ETB (optional)",
+    condition: "Condition",
+    new: "New",
+    used: "Used",
+    images: "Images, max 4",
+    location: "Location",
+    phone: "Phone e.g. 0912345678",
+    requirements: "Requirements",
+    details: "Details",
+  },
+};
+
 function Field({
+  error,
   name,
   placeholder,
   type = "text",
   required,
 }: {
+  error?: string;
   name: string;
   placeholder: string;
   type?: string;
   required?: boolean;
 }) {
   return (
-    <input
-      className="h-12 w-full rounded-lg border border-black/10 bg-white px-3 outline-none"
-      name={name}
-      placeholder={placeholder}
-      type={type}
-      required={required}
-    />
+    <label className="block">
+      <input
+        className={`h-12 w-full rounded-lg border bg-white px-3 outline-none ${error ? "border-red-300 ring-2 ring-red-100" : "border-black/10"}`}
+        name={name}
+        placeholder={placeholder}
+        type={type}
+        required={required}
+      />
+      <FieldError message={error} />
+    </label>
   );
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="mt-1 text-xs font-bold text-red-600">{message}</p>;
 }
 
 function SelectField({
@@ -917,40 +1018,51 @@ function MyAds({
   onDelete: (listing: Listing) => void;
   onRequestUpgrade: (formData: FormData) => void;
 }) {
+  const [upgradeType, setUpgradeType] = useState<UpgradeType>("extend");
+  const needsListing = upgradeType !== "overflow";
+
   return (
     <section className="space-y-4 p-4">
       <form
-        className="space-y-3 rounded-lg border border-black/10 bg-white p-3"
+        className="space-y-4 rounded-lg border border-black/10 bg-white p-4 shadow-sm"
         onSubmit={(event: FormEvent<HTMLFormElement>) => {
           event.preventDefault();
           onRequestUpgrade(new FormData(event.currentTarget));
         }}
       >
-        <h2 className="font-black">Paid upgrades</h2>
+        <h2 className="text-lg font-black">Paid upgrades</h2>
         <p className="text-sm leading-5 text-ink/65">
           {language === "am"
             ? "ማስታወቂያዎን 7 ቀን ማራዘም፣ 3 ቀን ከላይ ማሳየት፣ ወይም ከሳምንታዊ ገደቡ በላይ አንድ ተጨማሪ ፖስት መግዛት ይችላሉ።"
             : "Extend an ad for 7 days, boost it to the top for 3 days, or buy one extra post beyond the weekly free limit."}
         </p>
         <select
-          className="h-11 w-full rounded-md border border-black/10 px-3"
+          className="h-12 w-full rounded-md border border-black/10 bg-mist px-3 font-bold"
           name="upgradeType"
+          value={upgradeType}
+          onChange={(event) => setUpgradeType(event.target.value as UpgradeType)}
         >
           <option value="extend">{t(language, "extend")} - 25 ETB</option>
           <option value="boost">{t(language, "boost")} - 50 ETB</option>
           <option value="overflow">{t(language, "overflow")} - 25 ETB</option>
         </select>
-        <select
-          className="h-11 w-full rounded-md border border-black/10 px-3"
-          name="listingId"
-        >
-          <option value="">No listing / overflow</option>
-          {listings.map((listing) => (
-            <option key={listing.id} value={listing.id}>
-              {listing.title}
-            </option>
-          ))}
-        </select>
+        {needsListing && (
+          <select
+            className="h-12 w-full rounded-md border border-black/10 px-3"
+            name="listingId"
+            required
+          >
+            <option value="">{language === "am" ? "ማስታወቂያ ይምረጡ" : "Choose an ad"}</option>
+            {listings
+              .filter((listing) => listing.status === "active")
+              .map((listing) => (
+                <option key={listing.id} value={listing.id}>
+                  {listing.title}
+                </option>
+              ))}
+          </select>
+        )}
+        {!needsListing && <input type="hidden" name="listingId" value="" />}
         <div className="rounded-md bg-mist p-3 text-xs leading-5">
           Telebirr: {appConfig.payment.telebirrName} /{" "}
           {appConfig.payment.telebirrNumber}
@@ -980,11 +1092,16 @@ function MyAds({
         listings.map((listing) => (
           <article
             key={listing.id}
-            className="rounded-lg border border-black/10 bg-white p-3"
+            className="rounded-lg border border-black/10 bg-white p-4 shadow-sm"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-black">{listing.title}</h3>
+                <p className="mt-2 text-xs font-bold text-leaf">
+                  {categoryLabel(listing.type, listing.category, language)}
+                  {listing.type === "item" && listing.price ? ` - ${listing.price} ETB` : ""}
+                  {listing.type === "job" && listing.salary ? ` - ${listing.salary} ETB` : ""}
+                </p>
                 <p className="text-sm text-ink/60">
                   {listing.status} · expires{" "}
                   {new Date(listing.expires_at).toLocaleDateString()}
@@ -1016,6 +1133,12 @@ function AdminQueue({
 }) {
   return (
     <section className="space-y-3 p-4">
+      <div className="rounded-lg border border-black/10 bg-white p-4 shadow-sm">
+        <h2 className="text-lg font-black">Payment verification</h2>
+        <p className="mt-1 text-sm text-ink/60">
+          Review the ad, requester, amount, and receipt before approving an upgrade.
+        </p>
+      </div>
       {payments.length === 0 ? (
         <p className="py-12 text-center text-sm text-ink/60">
           No pending payments
@@ -1024,7 +1147,7 @@ function AdminQueue({
         payments.map((payment) => (
           <article
             key={payment.id}
-            className="space-y-3 rounded-lg border border-black/10 bg-white p-3"
+            className="space-y-4 rounded-lg border border-black/10 bg-white p-4 shadow-sm"
           >
             <div>
               <h2 className="font-black">
@@ -1033,6 +1156,16 @@ function AdminQueue({
               <p className="text-sm text-ink/60">
                 {payment.listings?.title ?? "Extra post slot"}
               </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <InfoPill label="Upgrade" value={upgradeLabel(payment.upgrade_type)} />
+              <InfoPill label="Amount" value={`${payment.amount_etb} ETB`} />
+              <InfoPill label="Requester" value={payment.profiles?.username ? `@${payment.profiles.username}` : payment.profiles?.telegram_id ?? "Unknown"} />
+              <InfoPill label="Submitted" value={new Date(payment.created_at).toLocaleString()} />
+              <InfoPill label="Ad type" value={payment.listings?.type ?? "Overflow"} />
+              <InfoPill label="Location" value={payment.listings?.location ?? "-"} />
+              <InfoPill label="Phone" value={payment.listings?.phone ?? "-"} />
+              <InfoPill label="Status" value={payment.status} />
             </div>
             <a
               className="block rounded-md bg-mist p-3 text-sm underline"
@@ -1074,12 +1207,59 @@ function ToastView({ toast, onClose }: { toast: Toast; onClose: () => void }) {
   if (!toast) return null;
   return (
     <button
-      className={`fixed left-4 right-4 top-4 z-50 mx-auto max-w-[448px] rounded-lg p-3 text-sm font-bold text-white ${toast.type === "success" ? "bg-leaf" : "bg-red-600"}`}
+      className={`fixed left-4 right-4 top-4 z-50 mx-auto flex max-w-[448px] items-start gap-3 rounded-lg p-3 text-left text-sm text-white shadow-lg ${toast.type === "success" ? "bg-leaf" : "bg-red-600"}`}
       onClick={onClose}
     >
-      {toast.message}
+      {toast.type === "success" ? <CheckCircle2 className="mt-0.5 shrink-0" size={20} /> : <AlertCircle className="mt-0.5 shrink-0" size={20} />}
+      <span>
+        <span className="block font-black">{toast.title}</span>
+        <span className="mt-0.5 block text-white/90">{toast.message}</span>
+      </span>
     </button>
   );
+}
+
+function LoadingState({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-black/10 bg-white/90 px-6 py-5 text-center shadow-sm">
+      <LoaderCircle className="animate-spin text-leaf" size={32} />
+      <p className="text-sm font-black text-ink">{label}</p>
+    </div>
+  );
+}
+
+function ImagePreview({ src, onClose }: { src: string; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/90 p-4" onClick={onClose}>
+      <button className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-white text-ink" aria-label="Close image" onClick={onClose}>
+        <X size={22} />
+      </button>
+      <img className="max-h-[88dvh] max-w-full rounded-lg object-contain" src={src} alt="" onClick={(event) => event.stopPropagation()} />
+    </div>
+  );
+}
+
+function InfoPill({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-md bg-mist p-2">
+      <p className="font-bold text-ink/45">{label}</p>
+      <p className="mt-0.5 break-words font-black text-ink">{value}</p>
+    </div>
+  );
+}
+
+function upgradeLabel(type: UpgradeType) {
+  if (type === "extend") return "Extend ad";
+  if (type === "boost") return "Boost ad";
+  return "Extra post";
+}
+
+function formatError(error: unknown, fallback: string) {
+  if (error instanceof ZodError) {
+    return error.issues.map((issue) => issue.message).join(". ");
+  }
+  if (error instanceof Error) return error.message;
+  return fallback;
 }
 
 function withImageUrls(rows: Listing[]): Listing[] {
@@ -1104,7 +1284,7 @@ function demoListing(payload: any, ownerId: string): Listing {
     category: payload.category ?? null,
     location: payload.location,
     condition: payload.condition ?? null,
-    job_type: payload.jobType ?? null,
+    job_type: null,
     phone: payload.phone,
     telegram_username: "demo_user",
     status: "active",

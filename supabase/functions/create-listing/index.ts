@@ -54,7 +54,7 @@ Deno.serve(async (req) => {
         category,
         location,
         condition: type === "item" ? body.condition ?? null : null,
-        job_type: type === "job" ? body.jobType ?? null : null,
+        job_type: null,
         phone,
         telegram_username: profile.username,
         expires_at: expiry(7)

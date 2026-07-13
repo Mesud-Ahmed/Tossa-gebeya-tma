@@ -1,6 +1,7 @@
 import { ZodError } from "zod";
+import { localizeKnownError, t } from "./i18n";
 import { getStoragePublicUrl } from "./supabase";
-import type { Listing, UpgradeType } from "./types";
+import type { Language, Listing, UpgradeType } from "./types";
 
 export function withImageUrls(rows: Listing[]): Listing[] {
   return rows.map((listing) => ({
@@ -20,8 +21,13 @@ export function formatError(error: unknown, fallback: string) {
   return fallback;
 }
 
-export function upgradeLabel(type: UpgradeType) {
-  if (type === "extend") return "Extend ad";
-  if (type === "boost") return "Boost ad";
-  return "Extra post";
+export function formatLocalizedError(error: unknown, language: Language, fallback: string) {
+  const message = formatError(error, fallback);
+  return localizeKnownError(language, message);
+}
+
+export function upgradeLabel(type: UpgradeType, language: Language = "en") {
+  if (type === "extend") return t(language, "extend");
+  if (type === "boost") return t(language, "boost");
+  return t(language, "overflow");
 }

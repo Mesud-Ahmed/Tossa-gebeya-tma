@@ -1,6 +1,7 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { requireProfile } from "../_shared/auth.ts";
 import { upgradeAmounts } from "../_shared/rules.ts";
+import { sendTelegramMessage } from "../_shared/telegram.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -35,8 +36,57 @@ Deno.serve(async (req) => {
       .single();
 
     if (error) throw error;
+
+    try {
+      await sendTelegramMessage(
+        profile.telegram_id,
+        paymentRequestMessage(profile.language ?? "am", upgradeType, upgradeAmounts[upgradeType as keyof typeof upgradeAmounts]),
+      );
+    } catch (messageError) {
+      console.error("Payment request Telegram notification failed", messageError);
+    }
+
     return json({ paymentRequest: data });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Payment request failed" }, 400);
   }
 });
+
+function paymentRequestMessage(language: string, upgradeType: string, amount: number) {
+  if (language === "en") {
+    return [
+      "Your paid upgrade request has been received.",
+      "",
+      `Package: ${upgradeLabel(upgradeType, "en")}`,
+      `Amount: ${amount} ETB`,
+      "",
+      "An admin will review your payment screenshot and apply the upgrade after confirmation. Thank you for using Tossa Gebaya.",
+    ].join("\n");
+  }
+
+  return [
+    "የሚከፈልበት የማሻሻያ ጥያቄዎ ተቀብለናል።",
+    "",
+    `ፓኬጅ: ${upgradeLabel(upgradeType, "am")}`,
+    `መጠን: ${amount} ETB`,
+    "",
+    "አስተዳዳሪ የክፍያ ስክሪንሾትዎን ካረጋገጠ በኋላ ማሻሻያው ይተገበራል። ጦሳ ገበያን ስለተጠቀሙ እናመሰግናለን።",
+  ].join("\n");
+}
+
+function upgradeLabel(upgradeType: string, language: "am" | "en") {
+  const labels = {
+    am: {
+      extend: "7 ቀን ማራዘሚያ",
+      boost: "ለ3 ቀናት ከላይ ማሳየት",
+      overflow: "1 ተጨማሪ ፖስት",
+    },
+    en: {
+      extend: "7-day extension",
+      boost: "3-day feed boost",
+      overflow: "1 extra post",
+    },
+  };
+
+  return labels[language][upgradeType as keyof typeof labels.en] ?? upgradeType;
+}

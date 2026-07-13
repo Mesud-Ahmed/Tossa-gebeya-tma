@@ -24,6 +24,8 @@ export const appConfig = {
   adminTelegramIds: parseAdminTelegramIds(
     process.env.NEXT_PUBLIC_ADMIN_TELEGRAM_IDS ?? "",
   ),
+  supportUrl: process.env.NEXT_PUBLIC_SUPPORT_URL ?? "https://t.me/",
+  channelUrl: process.env.NEXT_PUBLIC_TELEGRAM_CHANNEL_URL ?? "https://t.me/",
 };
 
 export function assertPublicConfig() {

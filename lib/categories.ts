@@ -6,19 +6,14 @@ export type CategoryOption = {
 };
 
 export const itemCategories: CategoryOption[] = [
-  
   { value: "electronics", labels: { am: "ኤሌክትሮኒክስ", en: "Electronics" } },
-  
   { value: "clothing", labels: { am: "ልብስ", en: "Clothing" } },
   { value: "shoes", labels: { am: "ጫማ", en: "Shoes" } },
-  
   { value: "furniture", labels: { am: "ፈርኒቸር", en: "Furniture" } },
   { value: "kitchen", labels: { am: "የኩሽና እቃ", en: "Kitchen" } },
   { value: "vehicles", labels: { am: "ተሽከርካሪ", en: "Vehicles" } },
-  
   { value: "beauty", labels: { am: "ውበት", en: "Beauty" } },
-  
-  { value: "other", labels: { am: "ሌላ", en: "Other" } }
+  { value: "other", labels: { am: "ሌላ", en: "Other" } },
 ];
 
 export const jobCategories: CategoryOption[] = [
@@ -27,7 +22,7 @@ export const jobCategories: CategoryOption[] = [
   { value: "teaching", labels: { am: "ትምህርት", en: "Teaching" } },
   { value: "health", labels: { am: "ጤና", en: "Health" } },
   { value: "office", labels: { am: "የቢሮ ስራ", en: "Office work" } },
-  { value: "other", labels: { am: "ሌላ", en: "Other" } }
+  { value: "other", labels: { am: "ሌላ", en: "Other" } },
 ];
 
 export function categoriesFor(type: ListingType) {

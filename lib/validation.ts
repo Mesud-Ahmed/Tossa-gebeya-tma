@@ -7,7 +7,7 @@ export const listingInputSchema = z
   .object({
     type: z.enum(["item", "job"]),
     title: z.string().trim().min(3).max(80),
-    description: z.string().trim().min(5).max(1200).optional(),
+    description: z.string().trim().min(5).max(4000).optional(),
     price: z.coerce.number().positive().max(10_000_000).optional(),
     salary: z.coerce.number().positive().max(2_000_000).optional(),
     category: z.string().trim().max(50).optional(),
@@ -23,6 +23,9 @@ export const listingInputSchema = z
 
     if (value.type === "item") {
       if (!value.price) ctx.addIssue({ code: "custom", path: ["price"], message: "Price is required" });
+      if (value.imagePaths.length < 1) {
+        ctx.addIssue({ code: "custom", path: ["images"], message: "At least 1 image is required" });
+      }
     }
 
     if (value.type === "job") {

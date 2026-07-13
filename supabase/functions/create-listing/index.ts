@@ -37,9 +37,15 @@ Deno.serve(async (req) => {
     const category = assertString(body.category, "category", 2, 50);
     const location = assertString(body.location, "location", 2, 80);
     const phone = assertString(body.phone, "phone", 9, 14);
+    const description =
+      typeof body.description === "string" && body.description.trim()
+        ? assertString(body.description, "description", 5, 4000)
+        : null;
     if (!phoneRegex.test(phone)) throw new Error("Invalid phone number");
 
-    const imagePaths = Array.isArray(body.imagePaths) ? body.imagePaths.slice(0, 4) : [];
+    const imagePaths = Array.isArray(body.imagePaths) ? body.imagePaths : [];
+    if (imagePaths.length > 4) throw new Error("Maximum 4 images");
+    if (type === "item" && imagePaths.length < 1) throw new Error("At least 1 image is required");
     if (type === "job" && imagePaths.length > 0) throw new Error("Jobs are text-only");
 
     const { data: listing, error: listingError } = await supabase
@@ -48,7 +54,7 @@ Deno.serve(async (req) => {
         owner_id: profile.id,
         type,
         title,
-        description: body.description ?? null,
+        description,
         price: type === "item" ? body.price : null,
         salary: type === "job" ? body.salary ?? null : null,
         category,

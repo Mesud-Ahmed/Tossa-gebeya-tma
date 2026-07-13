@@ -33,6 +33,22 @@ export const sampleListings: Listing[] = [
     boosted_until: new Date(Date.now() + 2 * 86400000).toISOString(),
     expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
     created_at: new Date().toISOString(),
+    listing_images: [
+      {
+        id: "sample-image-1",
+        listing_id: "sample-1",
+        storage_path: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80",
+        public_url: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=900&q=80",
+        sort_order: 0,
+      },
+      {
+        id: "sample-image-2",
+        listing_id: "sample-1",
+        storage_path: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=900&q=80",
+        public_url: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=900&q=80",
+        sort_order: 1,
+      },
+    ],
   },
   {
     id: "sample-2",
@@ -58,8 +74,9 @@ export const sampleListings: Listing[] = [
 ];
 
 export function demoListing(payload: any, ownerId: string): Listing {
+  const id = crypto.randomUUID();
   return {
-    id: crypto.randomUUID(),
+    id,
     owner_id: ownerId,
     type: payload.type,
     title: payload.title,
@@ -77,5 +94,12 @@ export function demoListing(payload: any, ownerId: string): Listing {
     boosted_until: null,
     expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
     created_at: new Date().toISOString(),
+    listing_images: (payload.imagePaths ?? []).map((path: string, index: number) => ({
+      id: crypto.randomUUID(),
+      listing_id: id,
+      storage_path: path,
+      public_url: path,
+      sort_order: index,
+    })),
   };
 }

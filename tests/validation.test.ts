@@ -20,6 +20,34 @@ describe("listing validation", () => {
     expect(parsed.success).toBe(false);
   });
 
+  it("requires at least one item image", () => {
+    const parsed = listingInputSchema.safeParse({
+      type: "item",
+      title: "Phone",
+      category: "electronics",
+      price: 1000,
+      location: "Dessie",
+      phone: "0912345678",
+      imagePaths: []
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  it("accepts item listings with an image", () => {
+    const parsed = listingInputSchema.safeParse({
+      type: "item",
+      title: "Phone",
+      category: "electronics",
+      price: 1000,
+      location: "Dessie",
+      phone: "0912345678",
+      imagePaths: ["owner/photo.jpg"]
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
   it("keeps jobs text-only", () => {
     const parsed = listingInputSchema.safeParse({
       type: "job",

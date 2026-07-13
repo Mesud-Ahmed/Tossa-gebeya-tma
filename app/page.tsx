@@ -1,20 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Briefcase, Filter, Languages, Megaphone, Plus, ReceiptText, Search } from "lucide-react";
+import { Briefcase, Filter, Languages, LifeBuoy, Megaphone, Menu, Plus, ReceiptText, Search, Send } from "lucide-react";
 import { ZodError } from "zod";
 import { AdminQueue } from "@/components/admin-queue";
 import { ListingGrid, ListingSheet } from "@/components/listings";
 import { MyAds } from "@/components/my-ads";
 import { PostForm } from "@/components/post-form";
 import { ImagePreview, LoadingState, NavButton, TabButton, ToastView } from "@/components/ui";
-import { formatError, withImageUrls } from "@/lib/app-utils";
+import { formatLocalizedError, withImageUrls } from "@/lib/app-utils";
 import type { Toast, View } from "@/lib/app-ui-types";
 import { categoriesFor } from "@/lib/categories";
 import { appConfig, assertPublicConfig } from "@/lib/config";
 import { demoListing, demoSession, sampleListings } from "@/lib/demo-data";
 import { functionUrl } from "@/lib/function-url";
-import { t } from "@/lib/i18n";
+import { interpolate, t } from "@/lib/i18n";
 import { compressListingImage } from "@/lib/images";
 import { supabase } from "@/lib/supabase";
 import { hasTelegramHash, initTelegram, verifyTelegram } from "@/lib/telegram";
@@ -38,6 +38,7 @@ export default function Home() {
   const [toast, setToast] = useState<Toast>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [payments, setPayments] = useState<PaymentRequest[]>([]);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const configured = assertPublicConfig();
   const labels = copyFor(language);
@@ -86,7 +87,7 @@ export default function Home() {
           throw error;
         }
       } catch (error) {
-        setToast({ type: "error", title: "Login failed", message: formatError(error, "Telegram login failed") });
+        setToast({ type: "error", title: t(language, "loginFailed"), message: formatLocalizedError(error, language, t(language, "error")) });
       } finally {
         setLoading(false);
       }
@@ -107,12 +108,6 @@ export default function Home() {
   }, [canAccessAdmin, view]);
 
   useEffect(() => setCategory("all"), [tab]);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timeout = window.setTimeout(() => setToast(null), 3500);
-    return () => window.clearTimeout(timeout);
-  }, [toast]);
 
   const filteredListings = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -146,7 +141,7 @@ export default function Home() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      setToast({ type: "error", title: "Could not load listings", message: error.message });
+      setToast({ type: "error", title: t(language, "loadListingsFailed"), message: formatLocalizedError(error, language, t(language, "error")) });
       return;
     }
 
@@ -163,7 +158,7 @@ export default function Home() {
       const data = await callFunction("list-my-listings", {});
       setMyListings(withImageUrls(data.listings ?? []));
     } catch (error) {
-      setToast({ type: "error", title: "Could not load your ads", message: formatError(error, labels.error) });
+      setToast({ type: "error", title: t(language, "loadMyAdsFailed"), message: formatLocalizedError(error, language, labels.error) });
     }
   }
 
@@ -180,7 +175,7 @@ export default function Home() {
   async function createListing(formData: FormData) {
     if (!session) return;
     setBusy(true);
-    setBusyMessage("Preparing your post...");
+    setBusyMessage(t(language, "preparingPost"));
     setFieldErrors({});
 
     try {
@@ -188,7 +183,23 @@ export default function Home() {
       const files = Array.from(formData.getAll("images")).filter((file): file is File => file instanceof File && file.size > 0);
       const imagePaths: string[] = [];
 
-      if (files.length > 4) throw new Error("Maximum 4 images");
+      if (type === "item" && files.length === 0) {
+        setFieldErrors({ images: t(language, "required") });
+        setToast({ type: "error", title: t(language, "formErrorTitle"), message: t(language, "formErrorMessage") });
+        return;
+      }
+
+      if (files.length > 4) {
+        setFieldErrors({ images: t(language, "maxImages") });
+        setToast({ type: "error", title: t(language, "formErrorTitle"), message: t(language, "maxImages") });
+        return;
+      }
+
+      if (files.some((file) => file.size > 10 * 1024 * 1024)) {
+        setFieldErrors({ images: t(language, "maxImageSize") });
+        setToast({ type: "error", title: t(language, "formErrorTitle"), message: t(language, "maxImageSize") });
+        return;
+      }
 
       if (configured && type === "item") {
         for (const file of files) {
@@ -201,14 +212,16 @@ export default function Home() {
           if (error) throw error;
           imagePaths.push(path);
         }
+      } else if (!configured && type === "item") {
+        imagePaths.push(...files.map((file) => URL.createObjectURL(file)));
       }
 
       const payload = listingInputSchema.parse({
         type,
         title: formData.get("title"),
         description: formData.get("description") || undefined,
-        price: formData.get("price") || undefined,
-        salary: formData.get("salary") || undefined,
+        price: normalizeMoney(formData.get("price")),
+        salary: normalizeMoney(formData.get("salary")),
         category: formData.get("category") || undefined,
         location: formData.get("location"),
         condition: formData.get("condition") || undefined,
@@ -226,20 +239,17 @@ export default function Home() {
 
       setToast({
         type: "success",
-        title: "Post published",
-        message: type === "item" ? "Your item is now visible in the feed." : "Your job opening is now visible in the feed.",
+        title: t(language, "postPublished"),
+        message: type === "item" ? t(language, "itemPublishedMessage") : t(language, "jobPublishedMessage"),
       });
       setView("my-ads");
     } catch (error) {
       if (error instanceof ZodError) {
-        const nextErrors: Record<string, string> = {};
-        for (const issue of error.issues) {
-          const key = issue.path[0]?.toString();
-          if (key) nextErrors[key] = issue.message;
-        }
-        setFieldErrors(nextErrors);
+        setFieldErrors(localizedFieldErrors(error, language));
+        setToast({ type: "error", title: t(language, "formErrorTitle"), message: t(language, "formErrorMessage") });
+      } else {
+        setToast({ type: "error", title: t(language, "formErrorTitle"), message: formatLocalizedError(error, language, labels.error) });
       }
-      setToast({ type: "error", title: "Please check the form", message: formatError(error, labels.error) });
     } finally {
       setBusy(false);
       setBusyMessage("");
@@ -247,9 +257,9 @@ export default function Home() {
   }
 
   async function deleteListing(listing: Listing) {
-    if (!window.confirm("Are you sure?")) return;
+    if (!window.confirm(t(language, "deleteConfirm"))) return;
     setBusy(true);
-    setBusyMessage("Deleting your ad...");
+    setBusyMessage(t(language, "deletingAd"));
 
     try {
       if (configured) {
@@ -259,9 +269,9 @@ export default function Home() {
       } else {
         setMyListings((current) => current.map((item) => (item.id === listing.id ? { ...item, status: "deleted" } : item)));
       }
-      setToast({ type: "success", title: "Ad deleted", message: "Your ad has been removed from the public feed." });
+      setToast({ type: "success", title: t(language, "adDeleted"), message: t(language, "adDeletedMessage") });
     } catch (error) {
-      setToast({ type: "error", title: "Delete failed", message: formatError(error, labels.error) });
+      setToast({ type: "error", title: t(language, "deleteFailed"), message: formatLocalizedError(error, language, labels.error) });
     } finally {
       setBusy(false);
       setBusyMessage("");
@@ -271,7 +281,7 @@ export default function Home() {
   async function requestUpgrade(formData: FormData) {
     if (!session) return;
     setBusy(true);
-    setBusyMessage("Submitting your payment request...");
+    setBusyMessage(t(language, "submittingPayment"));
 
     try {
       const upgradeType = formData.get("upgradeType") as UpgradeType;
@@ -290,11 +300,11 @@ export default function Home() {
 
       setToast({
         type: "success",
-        title: "Payment request submitted",
-        message: `Admin will review your ${upgradeAmounts[upgradeType]} ETB upgrade request.`,
+        title: t(language, "paymentSubmitted"),
+        message: interpolate(t(language, "paymentSubmittedMessage"), { amount: upgradeAmounts[upgradeType] }),
       });
     } catch (error) {
-      setToast({ type: "error", title: "Payment request failed", message: formatError(error, labels.error) });
+      setToast({ type: "error", title: t(language, "paymentFailed"), message: formatLocalizedError(error, language, labels.error) });
     } finally {
       setBusy(false);
       setBusyMessage("");
@@ -303,7 +313,7 @@ export default function Home() {
 
   async function reviewPayment(id: string, action: "approve" | "reject") {
     setBusy(true);
-    setBusyMessage(action === "approve" ? "Approving request..." : "Rejecting request...");
+    setBusyMessage(action === "approve" ? t(language, "approvingRequest") : t(language, "rejectingRequest"));
 
     try {
       await callFunction("admin-review-payment", { paymentRequestId: id, action });
@@ -311,11 +321,11 @@ export default function Home() {
       await loadFeed();
       setToast({
         type: "success",
-        title: action === "approve" ? "Request approved" : "Request rejected",
-        message: "The payment queue has been updated.",
+        title: action === "approve" ? t(language, "requestApproved") : t(language, "requestRejected"),
+        message: t(language, "paymentQueueUpdated"),
       });
     } catch (error) {
-      setToast({ type: "error", title: "Review failed", message: formatError(error, labels.error) });
+      setToast({ type: "error", title: t(language, "reviewFailed"), message: formatLocalizedError(error, language, labels.error) });
     } finally {
       setBusy(false);
       setBusyMessage("");
@@ -334,7 +344,17 @@ export default function Home() {
       },
       body: JSON.stringify(body),
     });
-    if (!response.ok) throw new Error(await response.text());
+    if (!response.ok) {
+      const text = await response.text();
+      let message = text;
+      try {
+        const parsed = JSON.parse(text) as { error?: string };
+        message = parsed.error || text;
+      } catch {
+        message = text;
+      }
+      throw new Error(message);
+    }
     return response.json().catch(() => ({}));
   }
 
@@ -354,19 +374,59 @@ export default function Home() {
             <p className="text-xs text-ink/60">Dessie</p>
             <h1 className="text-2xl font-black tracking-normal">{labels.appName}</h1>
           </div>
-          <button
-            className="grid h-11 w-11 place-items-center rounded-full border border-black/10 bg-white"
-            onClick={() => setLanguage((value) => (value === "am" ? "en" : "am"))}
-            aria-label="Change language"
-            type="button"
-          >
-            <Languages size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="grid h-11 w-11 place-items-center rounded-full border border-black/10 bg-white"
+              onClick={() => setLanguage((value) => (value === "am" ? "en" : "am"))}
+              aria-label={labels.changeLanguage}
+              type="button"
+            >
+              <Languages size={20} />
+            </button>
+            <div className="relative">
+              <button
+                className="grid h-11 w-11 place-items-center rounded-full border border-black/10 bg-white"
+                onClick={() => setMenuOpen((value) => !value)}
+                aria-label={labels.menu}
+                type="button"
+              >
+                <Menu size={20} />
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 top-12 w-56 overflow-hidden rounded-lg border border-black/10 bg-white text-sm font-bold shadow-lg">
+                  <a
+                    className="flex items-center gap-2 px-4 py-3 text-ink"
+                    href={appConfig.supportUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <LifeBuoy size={18} />
+                    {labels.support}
+                  </a>
+                  <a
+                    className="flex items-center gap-2 border-t border-black/10 px-4 py-3 text-ink"
+                    href={appConfig.channelUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    <Send size={18} />
+                    {labels.channel}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </header>
 
       {view === "feed" && (
         <section className="space-y-4 p-4">
+          <div className="rounded-lg border border-black/10 bg-white px-3 py-2 shadow-sm">
+            <h2 className="text-base font-black">{labels.feedTitle}</h2>
+            <p className="mt-0.5 text-xs text-ink/60">{labels.feedSubtitle}</p>
+          </div>
           <div className="grid grid-cols-2 gap-2 rounded-lg bg-white p-1">
             <TabButton active={tab === "item"} onClick={() => setTab("item")} label={labels.items} />
             <TabButton active={tab === "job"} onClick={() => setTab("job")} label={labels.jobs} />
@@ -386,7 +446,7 @@ export default function Home() {
             value={category}
             onChange={(event) => setCategory(event.target.value)}
           >
-            <option value="all">{language === "am" ? "ሁሉም ምድቦች" : "All categories"}</option>
+            <option value="all">{labels.allCategories}</option>
             {categoriesFor(tab).map((option) => (
               <option key={option.value} value={option.value}>
                 {option.labels[language]}
@@ -401,10 +461,10 @@ export default function Home() {
       {view === "my-ads" && (
         <MyAds busy={busy} listings={myListings} language={language} onDelete={deleteListing} onRequestUpgrade={requestUpgrade} />
       )}
-      {view === "admin" && canAccessAdmin && <AdminQueue busy={busy} payments={payments} onReview={reviewPayment} />}
+      {view === "admin" && canAccessAdmin && <AdminQueue busy={busy} language={language} payments={payments} onReview={reviewPayment} />}
 
-      <nav className="fixed bottom-0 left-1/2 z-30 grid w-full max-w-[480px] -translate-x-1/2 grid-cols-4 border-t border-black/10 bg-white p-2">
-        <NavButton active={view === "feed"} icon={<Megaphone size={19} />} label="Feed" onClick={() => setView("feed")} />
+      <nav className={`fixed bottom-0 left-1/2 z-30 grid w-full max-w-[480px] -translate-x-1/2 border-t border-black/10 bg-white p-2 ${canAccessAdmin ? "grid-cols-4" : "grid-cols-3"}`}>
+        <NavButton active={view === "feed"} icon={<Megaphone size={19} />} label={labels.feed} onClick={() => setView("feed")} />
         <NavButton active={view === "post"} icon={<Plus size={19} />} label={labels.post} onClick={() => setView("post")} />
         <NavButton active={view === "my-ads"} icon={<ReceiptText size={19} />} label={labels.myAds} onClick={() => setView("my-ads")} />
         {canAccessAdmin && (
@@ -415,8 +475,8 @@ export default function Home() {
       {selected && (
         <ListingSheet listing={selected} language={language} onImagePreview={setImagePreview} onClose={() => setSelected(null)} />
       )}
-      {imagePreview && <ImagePreview src={imagePreview} onClose={() => setImagePreview(null)} />}
-      {toast && <ToastView toast={toast} onClose={() => setToast(null)} />}
+      {imagePreview && <ImagePreview language={language} src={imagePreview} onClose={() => setImagePreview(null)} />}
+      {toast && <ToastView language={language} toast={toast} onClose={() => setToast(null)} />}
       {busy && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-white/70 text-sm font-bold backdrop-blur-sm">
           <LoadingState label={busyMessage || labels.loading} />
@@ -429,13 +489,58 @@ export default function Home() {
 function copyFor(language: Language) {
   return {
     appName: t(language, "appName"),
+    feed: t(language, "feed"),
+    feedTitle: t(language, "feedTitle"),
+    feedSubtitle: t(language, "feedSubtitle"),
     items: t(language, "items"),
     jobs: t(language, "jobs"),
     post: t(language, "post"),
     myAds: t(language, "myAds"),
     admin: t(language, "admin"),
     search: t(language, "search"),
+    allCategories: t(language, "allCategories"),
     loading: t(language, "loading"),
     error: t(language, "error"),
+    menu: t(language, "menu"),
+    support: t(language, "support"),
+    channel: t(language, "channel"),
+    changeLanguage: t(language, "changeLanguage"),
   };
+}
+
+function normalizeMoney(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.replace(/,/g, "").trim();
+  return normalized ? normalized : undefined;
+}
+
+function localizedFieldErrors(error: ZodError, language: Language) {
+  const fieldLabels: Record<string, string> = {
+    title: t(language, "itemTitle"),
+    category: t(language, "category"),
+    price: t(language, "price"),
+    salary: t(language, "salary"),
+    location: t(language, "location"),
+    phone: t(language, "phone"),
+    description: t(language, "details"),
+    images: t(language, "images"),
+    imagePaths: t(language, "images"),
+  };
+  const nextErrors: Record<string, string> = {};
+
+  for (const issue of error.issues) {
+    const key = issue.path[0]?.toString();
+    if (!key) continue;
+    const label = fieldLabels[key] ?? key;
+    const message = issue.message.toLowerCase();
+    if (message.includes("phone") || message.includes("invalid") || message.includes("regex")) {
+      nextErrors[key] = `${label}: ${t(language, "invalid")}`;
+    } else if (message.includes("maximum") || message.includes("too") || message.includes("at most")) {
+      nextErrors[key] = `${label}: ${t(language, "tooLong")}`;
+    } else {
+      nextErrors[key] = `${label}: ${t(language, "required")}`;
+    }
+  }
+
+  return nextErrors;
 }

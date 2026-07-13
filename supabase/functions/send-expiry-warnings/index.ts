@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
 
   const { data, error } = await supabase
     .from("listings")
-    .select("id, title, profiles!listings_owner_id_fkey(telegram_id)")
+    .select("id, title, profiles!listings_owner_id_fkey(telegram_id, language)")
     .eq("status", "active")
     .is("warned_at", null)
     .gte("expires_at", start)
@@ -21,10 +21,19 @@ Deno.serve(async (req) => {
 
   for (const listing of data ?? []) {
     const telegramId = (listing as any).profiles?.telegram_id;
+    const language = (listing as any).profiles?.language ?? "am";
     if (!telegramId) continue;
-    await sendTelegramMessage(telegramId, `Your Tossa Gebaya post "${listing.title}" will expire in about 2 days.`);
+    await sendTelegramMessage(telegramId, expiryMessage(language, listing.title));
     await supabase.from("listings").update({ warned_at: new Date().toISOString() }).eq("id", listing.id);
   }
 
   return json({ ok: true, count: data?.length ?? 0 });
 });
+
+function expiryMessage(language: string, title: string) {
+  if (language === "en") {
+    return `Your Tossa Gebaya post "${title}" will expire in about 2 days.`;
+  }
+
+  return `የጦሳ ገበያ ማስታወቂያዎ "${title}" በ2 ቀናት ገደማ ውስጥ ያበቃል።`;
+}

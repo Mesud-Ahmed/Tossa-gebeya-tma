@@ -1,6 +1,7 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { requireProfile } from "../_shared/auth.ts";
 import { adminIds } from "../_shared/supabase.ts";
+import { sendTelegramMessage } from "../_shared/telegram.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -47,8 +48,54 @@ Deno.serve(async (req) => {
       .update({ status: action === "approve" ? "approved" : "rejected", reviewed_at: new Date().toISOString() })
       .eq("id", payment.id);
 
+    const { data: requester } = await supabase
+      .from("profiles")
+      .select("telegram_id, language")
+      .eq("id", payment.user_id)
+      .maybeSingle();
+
+    if (requester?.telegram_id) {
+      try {
+        await sendTelegramMessage(
+          requester.telegram_id,
+          reviewMessage(requester.language ?? "am", action, payment.upgrade_type),
+        );
+      } catch (messageError) {
+        console.error("Payment review Telegram notification failed", messageError);
+      }
+    }
+
     return json({ ok: true });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Review failed" }, 403);
   }
 });
+
+function reviewMessage(language: string, action: "approve" | "reject", upgradeType: string) {
+  if (language === "en") {
+    return action === "approve"
+      ? `Your ${upgradeLabel(upgradeType, "en")} request has been approved and applied. Thank you for using Tossa Gebaya.`
+      : `Your ${upgradeLabel(upgradeType, "en")} request was not approved. Please contact support if you need help.`;
+  }
+
+  return action === "approve"
+    ? `የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ ጸድቆ ተተግብሯል። ጦሳ ገበያን ስለተጠቀሙ እናመሰግናለን።`
+    : `የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ አልጸደቀም። እርዳታ ከፈለጉ እባክዎ ድጋፍን ያነጋግሩ።`;
+}
+
+function upgradeLabel(upgradeType: string, language: "am" | "en") {
+  const labels = {
+    am: {
+      extend: "7 ቀን ማራዘሚያ",
+      boost: "ለ3 ቀናት ከላይ ማሳየት",
+      overflow: "1 ተጨማሪ ፖስት",
+    },
+    en: {
+      extend: "7-day extension",
+      boost: "3-day feed boost",
+      overflow: "1 extra post",
+    },
+  };
+
+  return labels[language][upgradeType as keyof typeof labels.en] ?? upgradeType;
+}

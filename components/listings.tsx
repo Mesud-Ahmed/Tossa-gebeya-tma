@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Eye, Image as ImageIcon, Megaphone, Star } from "lucide-react";
 import { categoryLabel } from "@/lib/categories";
 import { t } from "@/lib/i18n";
@@ -43,7 +44,7 @@ export function ListingGrid({
               </div>
               <p className="mt-1 text-sm text-ink/65">{listing.location}</p>
               <p className="mt-2 font-black text-leaf">
-                {listing.type === "item" ? `${listing.price ?? "-"} ETB` : listing.salary ? `${listing.salary} ETB` : "Open"}
+                {listing.type === "item" ? `${listing.price ?? "-"} ETB` : listing.salary ? `${listing.salary} ETB` : t(language, "open")}
               </p>
               {listing.category && (
                 <p className="mt-1 text-xs font-bold text-ink/45">
@@ -70,6 +71,9 @@ export function ListingSheet({
   onClose: () => void;
 }) {
   const username = listing.telegram_username?.replace("@", "");
+  const images = listing.listing_images?.length ? listing.listing_images : [{ id: "blank", public_url: "" } as any];
+  const [activeImage, setActiveImage] = useState(0);
+  const image = images[Math.min(activeImage, images.length - 1)];
 
   return (
     <div className="fixed inset-0 z-40 flex items-end bg-black/35" onClick={onClose}>
@@ -78,30 +82,43 @@ export function ListingSheet({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-black/20" />
-        <div className="flex gap-2 overflow-x-auto">
-          {(listing.listing_images?.length ? listing.listing_images : [{ id: "blank", public_url: "" } as any]).map((image) => (
-            <button
-              key={image.id}
-              className="relative grid h-52 min-w-full place-items-center overflow-hidden rounded-lg bg-mist"
-              type="button"
-              onClick={() => image.public_url && onImagePreview(image.public_url)}
-            >
-              {image.public_url ? (
-                <>
-                  <img className="h-full w-full object-cover" src={image.public_url} alt="" />
-                  <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink shadow">
-                    <Eye size={18} />
-                  </span>
-                </>
-              ) : (
-                <ImageIcon className="text-ink/35" />
-              )}
-            </button>
-          ))}
+        <div className="relative">
+          <button
+            className="relative grid h-52 w-full place-items-center overflow-hidden rounded-lg bg-mist"
+            type="button"
+            onClick={() => image.public_url && onImagePreview(image.public_url)}
+          >
+            {image.public_url ? (
+              <>
+                <img className="h-full w-full object-cover" src={image.public_url} alt="" />
+                <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink shadow">
+                  <Eye size={18} />
+                </span>
+              </>
+            ) : (
+              <ImageIcon className="text-ink/35" />
+            )}
+          </button>
+          {images.length > 1 && (
+            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/45 px-2 py-1">
+              {images.map((dotImage, index) => (
+                <button
+                  key={dotImage.id}
+                  className={`h-2 w-2 rounded-full ${index === activeImage ? "bg-white" : "bg-white/45"}`}
+                  type="button"
+                  aria-label={`${t(language, "photo")} ${index + 1}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setActiveImage(index);
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
         <h2 className="mt-4 text-2xl font-black">{listing.title}</h2>
         <p className="mt-1 text-sm text-ink/60">{listing.location}</p>
-        <p className="mt-4 whitespace-pre-wrap text-sm leading-6">{listing.description}</p>
+        <p className="mt-4 whitespace-pre-wrap text-sm leading-6">{listing.description || t(language, "noDescription")}</p>
         <div className="mt-5 grid grid-cols-2 gap-3">
           <a className="grid h-12 place-items-center rounded-lg bg-leaf font-black text-white" href={`tel:${listing.phone}`}>
             {t(language, "call")}

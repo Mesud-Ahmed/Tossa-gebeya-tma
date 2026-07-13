@@ -21,7 +21,7 @@ create table public.listings (
   owner_id uuid not null references public.profiles(id) on delete cascade,
   type public.listing_type not null,
   title text not null check (char_length(title) between 3 and 80),
-  description text check (description is null or char_length(description) <= 1200),
+  description text check (description is null or char_length(description) <= 4000),
   price numeric check (price is null or price > 0),
   salary numeric check (salary is null or salary > 0),
   category text,
@@ -114,8 +114,8 @@ create policy "Slots are service-managed"
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values
-  ('listing-images', 'listing-images', true, 600000, array['image/jpeg', 'image/png', 'image/webp']),
-  ('payment-screenshots', 'payment-screenshots', false, 3000000, array['image/jpeg', 'image/png', 'image/webp'])
+  ('listing-images', 'listing-images', true, 10000000, array['image/jpeg', 'image/png', 'image/webp']),
+  ('payment-screenshots', 'payment-screenshots', false, 10000000, array['image/jpeg', 'image/png', 'image/webp'])
 on conflict (id) do nothing;
 
 create policy "Public can read listing images"

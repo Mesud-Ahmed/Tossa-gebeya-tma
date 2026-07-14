@@ -82,20 +82,19 @@ function reviewMessage(language: string, action: "approve" | "reject", upgradeTy
         ].join("\n")
       : [
           `Your ${upgradeLabel(upgradeType, "en")} request was not approved.`,
-          "Please contact support if you think this was a mistake or need help with your payment.",
+          "Please contact support if you think this was a mistake or need help with your payment. contact our customer support @tossa_gebeya_support",
         ].join("\n");
   }
 
   return action === "approve"
     ? [
-        `የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ ጸድቋል።`,
-        "ማሻሻያው አሁን በመለያዎ ወይም በማስታወቂያዎ ላይ ተተግብሯል።",
-        "",
-        "ጦሳ ገበያን ስለተጠቀሙ እናመሰግናለን።",
+        `✅ የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ ጸድቋል!`,
+        "ማሻሻያው በማስታወቂያዎ ላይ ተተግብሯል።",
+        "ጦሳ ገበያን ስለመረጡ እናመሰግናለን።"
       ].join("\n")
     : [
-        `የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ አልጸደቀም።`,
-        "ይህ በስህተት ነው ብለው ካሰቡ ወይም በክፍያዎ ላይ እርዳታ ከፈለጉ እባክዎ ድጋፍን ያነጋግሩ።",
+        `❌ የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ አልጸደቀም።`,
+        "ለእርዳታ የደንበኞች ድጋፍን በ @tossa_gebeya_support ያግኙ። "
       ].join("\n");
 }
 

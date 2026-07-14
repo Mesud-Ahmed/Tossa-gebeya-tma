@@ -34,12 +34,12 @@ function expiryMessage(language: string, title: string) {
   if (language === "en") {
     return [
       `Your Tossa Gebaya post "${title}" will expire in about 2 days.`,
-      "You can request a 7-day extension from My Ads if you want it to stay visible.",
+      "You can request a 7-day extension from My Ads if you want it to stay visible. contact our customer support @tossa_gebeya_support ",
     ].join("\n");
   }
 
   return [
-    `የጦሳ ገበያ ማስታወቂያዎ "${title}" በ2 ቀናት ገደማ ውስጥ ያበቃል።`,
-    "እንዲታይ እንዲቀጥል ከፈለጉ ከ“የኔ ማስታወቂያዎች” ውስጥ የ7 ቀን ማራዘሚያ መጠየቅ ይችላሉ።",
-  ].join("\n");
+    `⚠️ ማስታወቂያዎ (“${title}”) በ2 ቀን ውስጥ ያበቃል።`,
+    "ማስታወቂያውን ለማራዘም ወደ “የኔ ማስታወቂያዎች” በመሄድ የ7 ቀን ማራዘሚያ ይጠይቁ። ለእርዳታ የደንበኞች ድጋፍን በ @tossa_gebeya_support ያግኙ።"
+].join("\n");
 }

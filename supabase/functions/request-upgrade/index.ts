@@ -67,15 +67,13 @@ function paymentRequestMessage(language: string, upgradeType: string, amount: nu
   }
 
   return [
-    "የሚከፈልበት የማሻሻያ ጥያቄዎ በተሳካ ሁኔታ ተቀብሏል።",
-    "",
+    "✅ የክፍያ ጥያቄዎ ደርሶናል!",
     `ፓኬጅ: ${upgradeLabel(upgradeType, "am")}`,
-    `መጠን: ${amount} ETB`,
+    `ዋጋ: ${amount} ETB`,
     "",
-    "አስተዳዳሪ የክፍያ ስክሪንሾትዎን ይመረምራል። ክፍያው ከተረጋገጠ በኋላ ማሻሻያው በማስታወቂያዎ ላይ ይተገበራል።",
-    "",
-    "ጦሳ ገበያን ስለተጠቀሙ እናመሰግናለን።",
-  ].join("\n");
+    "ክፍያዎ እየተጣራ ነው። ሲጸድቅ ማስታወቂያዎ ይሻሻላል።",
+    "ጦሳ ገበያን ስለመረጡ እናመሰግናለን።"
+].join("\n");
 }
 
 function upgradeLabel(upgradeType: string, language: "am" | "en") {

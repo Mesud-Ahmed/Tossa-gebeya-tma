@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, Image as ImageIcon, Megaphone, Star } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Eye, Star } from "lucide-react";
 import { categoryLabel } from "@/lib/categories";
 import { t } from "@/lib/i18n";
 import type { Language, Listing } from "@/lib/types";
@@ -30,13 +30,13 @@ export function ListingGrid({
           type="button"
         >
           <div className="flex gap-3">
-            <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-md bg-mist">
-              {listing.listing_images?.[0]?.public_url ? (
-                <img className="h-full w-full object-cover" src={listing.listing_images[0].public_url} alt="" />
-              ) : (
-                <Megaphone className="text-ink/35" />
-              )}
-            </div>
+            {listing.type === "item" && (
+              <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-md bg-mist">
+                {listing.listing_images?.[0]?.public_url && (
+                  <img className="h-full w-full object-cover" src={listing.listing_images[0].public_url} alt="" />
+                )}
+              </div>
+            )}
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
                 <h2 className="line-clamp-2 text-base font-black">{listing.title}</h2>
@@ -70,10 +70,27 @@ export function ListingSheet({
   onImagePreview: (src: string) => void;
   onClose: () => void;
 }) {
-  const username = listing.telegram_username?.replace("@", "");
-  const images = listing.listing_images?.length ? listing.listing_images : [{ id: "blank", public_url: "" } as any];
+  const images = useMemo(
+    () =>
+      listing.type === "item"
+        ? [...(listing.listing_images?.filter((image) => image.public_url) ?? [])].sort((a, b) => a.sort_order - b.sort_order)
+        : [],
+    [listing],
+  );
   const [activeImage, setActiveImage] = useState(0);
-  const image = images[Math.min(activeImage, images.length - 1)];
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setActiveImage(0);
+    carouselRef.current?.scrollTo({ left: 0 });
+  }, [listing.id]);
+
+  function scrollToImage(index: number) {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+    carousel.scrollTo({ left: carousel.clientWidth * index, behavior: "smooth" });
+    setActiveImage(index);
+  }
 
   return (
     <div className="fixed inset-0 z-40 flex items-end bg-black/35" onClick={onClose}>
@@ -82,49 +99,55 @@ export function ListingSheet({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-black/20" />
-        <div className="relative">
-          <button
-            className="relative grid h-52 w-full place-items-center overflow-hidden rounded-lg bg-mist"
-            type="button"
-            onClick={() => image.public_url && onImagePreview(image.public_url)}
-          >
-            {image.public_url ? (
-              <>
-                <img className="h-full w-full object-cover" src={image.public_url} alt="" />
-                <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink shadow">
-                  <Eye size={18} />
-                </span>
-              </>
-            ) : (
-              <ImageIcon className="text-ink/35" />
-            )}
-          </button>
-          {images.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/45 px-2 py-1">
-              {images.map((dotImage, index) => (
+        {images.length > 0 && (
+          <div className="relative">
+            <div
+              ref={carouselRef}
+              className="flex snap-x snap-mandatory overflow-x-auto rounded-lg scroll-smooth"
+              onScroll={(event) => {
+                const target = event.currentTarget;
+                const nextIndex = Math.round(target.scrollLeft / Math.max(target.clientWidth, 1));
+                setActiveImage(Math.min(Math.max(nextIndex, 0), images.length - 1));
+              }}
+            >
+              {images.map((image) => (
                 <button
-                  key={dotImage.id}
-                  className={`h-2 w-2 rounded-full ${index === activeImage ? "bg-white" : "bg-white/45"}`}
+                  key={image.id}
+                  className="relative grid h-52 min-w-full snap-center place-items-center overflow-hidden bg-mist"
                   type="button"
-                  aria-label={`${t(language, "photo")} ${index + 1}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setActiveImage(index);
-                  }}
-                />
+                  onClick={() => image.public_url && onImagePreview(image.public_url)}
+                >
+                  <img className="h-full w-full object-cover" src={image.public_url} alt="" />
+                  <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink shadow">
+                    <Eye size={18} />
+                  </span>
+                </button>
               ))}
             </div>
-          )}
-        </div>
+            {images.length > 1 && (
+              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 rounded-full bg-black/45 px-2 py-1">
+                {images.map((dotImage, index) => (
+                  <button
+                    key={dotImage.id}
+                    className={`h-2 w-2 rounded-full ${index === activeImage ? "bg-white" : "bg-white/45"}`}
+                    type="button"
+                    aria-label={`${t(language, "photo")} ${index + 1}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      scrollToImage(index);
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <h2 className="mt-4 text-2xl font-black">{listing.title}</h2>
         <p className="mt-1 text-sm text-ink/60">{listing.location}</p>
         <p className="mt-4 whitespace-pre-wrap text-sm leading-6">{listing.description || t(language, "noDescription")}</p>
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5">
           <a className="grid h-12 place-items-center rounded-lg bg-leaf font-black text-white" href={`tel:${listing.phone}`}>
             {t(language, "call")}
-          </a>
-          <a className="grid h-12 place-items-center rounded-lg bg-ember font-black text-white" href={username ? `https://t.me/${username}` : "#"}>
-            {t(language, "telegram")}
           </a>
         </div>
       </section>

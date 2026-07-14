@@ -87,7 +87,7 @@ export default function Home() {
           throw error;
         }
       } catch (error) {
-        setToast({ type: "error", title: t(language, "loginFailed"), message: formatLocalizedError(error, language, t(language, "error")) });
+        setToast({ type: "error", title: t("am", "loginFailed"), message: formatLocalizedError(error, "am", t("am", "error")) });
       } finally {
         setLoading(false);
       }
@@ -209,7 +209,10 @@ export default function Home() {
             contentType: "image/jpeg",
             upsert: false,
           });
-          if (error) throw error;
+          if (error) {
+            setFieldErrors({ images: `${t(language, "images")}: ${error.message}` });
+            throw new Error(`${t(language, "uploadImageFailed")}: ${error.message}`);
+          }
           imagePaths.push(path);
         }
       } else if (!configured && type === "item") {
@@ -248,7 +251,7 @@ export default function Home() {
         setFieldErrors(localizedFieldErrors(error, language));
         setToast({ type: "error", title: t(language, "formErrorTitle"), message: t(language, "formErrorMessage") });
       } else {
-        setToast({ type: "error", title: t(language, "formErrorTitle"), message: formatLocalizedError(error, language, labels.error) });
+        setToast({ type: "error", title: t(language, "submissionFailed"), message: formatLocalizedError(error, language, labels.error) });
       }
     } finally {
       setBusy(false);
@@ -333,17 +336,22 @@ export default function Home() {
   }
 
   async function callFunction(name: string, body: unknown) {
-    const response = await fetch(functionUrl(name), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: appConfig.supabaseAnonKey,
-        Authorization: `Bearer ${appConfig.supabaseAnonKey}`,
-        "x-telegram-id": session?.profile.telegram_id ?? "",
-        "x-telegram-init-data": session?.initData ?? "",
-      },
-      body: JSON.stringify(body),
-    });
+    let response: Response;
+    try {
+      response = await fetch(functionUrl(name), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: appConfig.supabaseAnonKey,
+          Authorization: `Bearer ${appConfig.supabaseAnonKey}`,
+          "x-telegram-id": session?.profile.telegram_id ?? "",
+          "x-telegram-init-data": session?.initData ?? "",
+        },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      throw new Error(t(language, "networkError"));
+    }
     if (!response.ok) {
       const text = await response.text();
       let message = text;

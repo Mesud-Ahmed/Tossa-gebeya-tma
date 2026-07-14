@@ -74,13 +74,29 @@ Deno.serve(async (req) => {
 function reviewMessage(language: string, action: "approve" | "reject", upgradeType: string) {
   if (language === "en") {
     return action === "approve"
-      ? `Your ${upgradeLabel(upgradeType, "en")} request has been approved and applied. Thank you for using Tossa Gebaya.`
-      : `Your ${upgradeLabel(upgradeType, "en")} request was not approved. Please contact support if you need help.`;
+      ? [
+          `Your ${upgradeLabel(upgradeType, "en")} request has been approved.`,
+          "The upgrade has now been applied to your account or listing.",
+          "",
+          "Thank you for using Tossa Gebaya.",
+        ].join("\n")
+      : [
+          `Your ${upgradeLabel(upgradeType, "en")} request was not approved.`,
+          "Please contact support if you think this was a mistake or need help with your payment.",
+        ].join("\n");
   }
 
   return action === "approve"
-    ? `የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ ጸድቆ ተተግብሯል። ጦሳ ገበያን ስለተጠቀሙ እናመሰግናለን።`
-    : `የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ አልጸደቀም። እርዳታ ከፈለጉ እባክዎ ድጋፍን ያነጋግሩ።`;
+    ? [
+        `የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ ጸድቋል።`,
+        "ማሻሻያው አሁን በመለያዎ ወይም በማስታወቂያዎ ላይ ተተግብሯል።",
+        "",
+        "ጦሳ ገበያን ስለተጠቀሙ እናመሰግናለን።",
+      ].join("\n")
+    : [
+        `የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ አልጸደቀም።`,
+        "ይህ በስህተት ነው ብለው ካሰቡ ወይም በክፍያዎ ላይ እርዳታ ከፈለጉ እባክዎ ድጋፍን ያነጋግሩ።",
+      ].join("\n");
 }
 
 function upgradeLabel(upgradeType: string, language: "am" | "en") {

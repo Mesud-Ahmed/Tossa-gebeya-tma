@@ -60,17 +60,21 @@ function paymentRequestMessage(language: string, upgradeType: string, amount: nu
       `Package: ${upgradeLabel(upgradeType, "en")}`,
       `Amount: ${amount} ETB`,
       "",
-      "An admin will review your payment screenshot and apply the upgrade after confirmation. Thank you for using Tossa Gebaya.",
+      "An admin will review your payment screenshot. If the payment is confirmed, the upgrade will be applied to your listing.",
+      "",
+      "Thank you for using Tossa Gebaya.",
     ].join("\n");
   }
 
   return [
-    "የሚከፈልበት የማሻሻያ ጥያቄዎ ተቀብለናል።",
+    "የሚከፈልበት የማሻሻያ ጥያቄዎ በተሳካ ሁኔታ ተቀብሏል።",
     "",
     `ፓኬጅ: ${upgradeLabel(upgradeType, "am")}`,
     `መጠን: ${amount} ETB`,
     "",
-    "አስተዳዳሪ የክፍያ ስክሪንሾትዎን ካረጋገጠ በኋላ ማሻሻያው ይተገበራል። ጦሳ ገበያን ስለተጠቀሙ እናመሰግናለን።",
+    "አስተዳዳሪ የክፍያ ስክሪንሾትዎን ይመረምራል። ክፍያው ከተረጋገጠ በኋላ ማሻሻያው በማስታወቂያዎ ላይ ይተገበራል።",
+    "",
+    "ጦሳ ገበያን ስለተጠቀሙ እናመሰግናለን።",
   ].join("\n");
 }
 

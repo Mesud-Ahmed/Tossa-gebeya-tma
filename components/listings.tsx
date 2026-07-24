@@ -180,12 +180,6 @@ export function ListingSheet({
         )}
         <h2 className="mt-4 text-2xl font-black">{listing.title}</h2>
         <p className="mt-1 text-sm text-ink/60">{listing.location}</p>
-        <p className="mt-2 text-xs text-ink/60">
-          {t(language, "submitted")}: {formatEthiopianDate(listing.created_at)}
-        </p>
-        <p className="mt-2 text-xs text-ink/60">
-          {t(language, "expires")}: {formatEthiopianDate(listing.expires_at)}
-        </p>
         <p className="mt-4 whitespace-pre-wrap text-sm leading-6">
           {listing.description || t(language, "noDescription")}
         </p>

@@ -127,7 +127,6 @@ export function MyAds({
                 Telebirr
               </p>
               <p className="font-black text-ink">
-                {appConfig.payment.telebirrName} /{" "}
                 {appConfig.payment.telebirrNumber}
               </p>
               <button
@@ -152,7 +151,7 @@ export function MyAds({
                 CBE
               </p>
               <p className="font-black text-ink">
-                {appConfig.payment.cbeName} / {appConfig.payment.cbeNumber}
+                {appConfig.payment.cbeNumber}
               </p>
               <button
                 className="mt-2 inline-flex items-center gap-2 rounded-md bg-ink/10 px-3 py-2 text-xs font-black uppercase text-ink transition hover:bg-ink/15"

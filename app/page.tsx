@@ -1,13 +1,29 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Briefcase, Filter, Languages, LifeBuoy, Megaphone, Menu, Plus, ReceiptText, Search, Send } from "lucide-react";
+import {
+  Briefcase,
+  Filter,
+  LifeBuoy,
+  Megaphone,
+  Menu,
+  Plus,
+  ReceiptText,
+  Search,
+  Send,
+} from "lucide-react";
 import { ZodError } from "zod";
 import { AdminQueue } from "@/components/admin-queue";
 import { ListingGrid, ListingSheet } from "@/components/listings";
 import { MyAds } from "@/components/my-ads";
 import { PostForm } from "@/components/post-form";
-import { ImagePreview, LoadingState, NavButton, TabButton, ToastView } from "@/components/ui";
+import {
+  ImagePreview,
+  LoadingState,
+  NavButton,
+  TabButton,
+  ToastView,
+} from "@/components/ui";
 import { formatLocalizedError, withImageUrls } from "@/lib/app-utils";
 import type { Toast, View } from "@/lib/app-ui-types";
 import { categoriesFor } from "@/lib/categories";
@@ -18,8 +34,19 @@ import { interpolate, t } from "@/lib/i18n";
 import { compressListingImage } from "@/lib/images";
 import { supabase } from "@/lib/supabase";
 import { hasTelegramHash, initTelegram, verifyTelegram } from "@/lib/telegram";
-import type { AppSession, Language, Listing, ListingType, PaymentRequest, UpgradeType } from "@/lib/types";
-import { isCurrentlyBoosted, listingInputSchema, upgradeAmounts } from "@/lib/validation";
+import type {
+  AppSession,
+  Language,
+  Listing,
+  ListingType,
+  PaymentRequest,
+  UpgradeType,
+} from "@/lib/types";
+import {
+  isCurrentlyBoosted,
+  listingInputSchema,
+  upgradeAmounts,
+} from "@/lib/validation";
 
 export default function Home() {
   const [session, setSession] = useState<AppSession | null>(null);
@@ -55,17 +82,28 @@ export default function Home() {
 
         const initData = initTelegram();
         if (!hasTelegramHash(initData)) {
-          throw new Error("Missing Telegram login data. Open this page from the bot's Mini App button after redeploying.");
+          throw new Error(
+            "Missing Telegram login data. Open this page from the bot's Mini App button after redeploying.",
+          );
         }
 
         const fallbackUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
         const fallbackAdminId = fallbackUser?.id?.toString();
-        const isPublicAdmin = appConfig.adminTelegramIds.includes(fallbackAdminId ?? "");
+        const isPublicAdmin = appConfig.adminTelegramIds.includes(
+          fallbackAdminId ?? "",
+        );
 
         try {
           const verified = await verifyTelegram(initData);
-          const isAdmin = Boolean(verified.profile.is_admin || appConfig.adminTelegramIds.includes(verified.profile.telegram_id));
-          setSession({ ...verified, initData, profile: { ...verified.profile, is_admin: isAdmin } });
+          const isAdmin = Boolean(
+            verified.profile.is_admin ||
+            appConfig.adminTelegramIds.includes(verified.profile.telegram_id),
+          );
+          setSession({
+            ...verified,
+            initData,
+            profile: { ...verified.profile, is_admin: isAdmin },
+          });
           setLanguage(verified.profile.language ?? "am");
         } catch (error) {
           if (fallbackUser && isPublicAdmin) {
@@ -87,7 +125,11 @@ export default function Home() {
           throw error;
         }
       } catch (error) {
-        setToast({ type: "error", title: t("am", "loginFailed"), message: formatLocalizedError(error, "am", t("am", "error")) });
+        setToast({
+          type: "error",
+          title: t("am", "loginFailed"),
+          message: formatLocalizedError(error, "am", t("am", "error")),
+        });
       } finally {
         setLoading(false);
       }
@@ -116,14 +158,22 @@ export default function Home() {
       .filter((listing) => category === "all" || listing.category === category)
       .filter((listing) => {
         if (!needle) return true;
-        return [listing.title, listing.location, listing.category, listing.description]
+        return [
+          listing.title,
+          listing.location,
+          listing.category,
+          listing.description,
+        ]
           .filter(Boolean)
           .some((value) => value!.toLowerCase().includes(needle));
       })
       .sort((a, b) => {
-        const boosted = Number(isCurrentlyBoosted(b)) - Number(isCurrentlyBoosted(a));
+        const boosted =
+          Number(isCurrentlyBoosted(b)) - Number(isCurrentlyBoosted(a));
         if (boosted !== 0) return boosted;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        return (
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
       });
   }, [category, listings, query, tab]);
 
@@ -141,7 +191,11 @@ export default function Home() {
       .order("created_at", { ascending: false });
 
     if (error) {
-      setToast({ type: "error", title: t(language, "loadListingsFailed"), message: formatLocalizedError(error, language, t(language, "error")) });
+      setToast({
+        type: "error",
+        title: t(language, "loadListingsFailed"),
+        message: formatLocalizedError(error, language, t(language, "error")),
+      });
       return;
     }
 
@@ -158,7 +212,11 @@ export default function Home() {
       const data = await callFunction("list-my-listings", {});
       setMyListings(withImageUrls(data.listings ?? []));
     } catch (error) {
-      setToast({ type: "error", title: t(language, "loadMyAdsFailed"), message: formatLocalizedError(error, language, labels.error) });
+      setToast({
+        type: "error",
+        title: t(language, "loadMyAdsFailed"),
+        message: formatLocalizedError(error, language, labels.error),
+      });
     }
   }
 
@@ -167,8 +225,13 @@ export default function Home() {
     try {
       const data = await callFunction("list-admin-payments", {});
       setPayments(data.payments ?? []);
-    } catch {
+    } catch (error) {
       setPayments([]);
+      setToast({
+        type: "error",
+        title: t(language, "loadPaymentsFailed"),
+        message: formatLocalizedError(error, language, t(language, "error")),
+      });
     }
   }
 
@@ -180,24 +243,38 @@ export default function Home() {
 
     try {
       const type = formData.get("type") as ListingType;
-      const files = Array.from(formData.getAll("images")).filter((file): file is File => file instanceof File && file.size > 0);
+      const files = Array.from(formData.getAll("images")).filter(
+        (file): file is File => file instanceof File && file.size > 0,
+      );
       const imagePaths: string[] = [];
 
       if (type === "item" && files.length === 0) {
         setFieldErrors({ images: t(language, "required") });
-        setToast({ type: "error", title: t(language, "formErrorTitle"), message: t(language, "formErrorMessage") });
+        setToast({
+          type: "error",
+          title: t(language, "formErrorTitle"),
+          message: t(language, "formErrorMessage"),
+        });
         return;
       }
 
       if (files.length > 4) {
         setFieldErrors({ images: t(language, "maxImages") });
-        setToast({ type: "error", title: t(language, "formErrorTitle"), message: t(language, "maxImages") });
+        setToast({
+          type: "error",
+          title: t(language, "formErrorTitle"),
+          message: t(language, "maxImages"),
+        });
         return;
       }
 
       if (files.some((file) => file.size > 10 * 1024 * 1024)) {
         setFieldErrors({ images: t(language, "maxImageSize") });
-        setToast({ type: "error", title: t(language, "formErrorTitle"), message: t(language, "maxImageSize") });
+        setToast({
+          type: "error",
+          title: t(language, "formErrorTitle"),
+          message: t(language, "maxImageSize"),
+        });
         return;
       }
 
@@ -205,13 +282,19 @@ export default function Home() {
         for (const file of files) {
           const compressed = await compressListingImage(file);
           const path = `${session.profile.id}/${crypto.randomUUID()}.jpg`;
-          const { error } = await supabase.storage.from("listing-images").upload(path, compressed, {
-            contentType: "image/jpeg",
-            upsert: false,
-          });
+          const { error } = await supabase.storage
+            .from("listing-images")
+            .upload(path, compressed, {
+              contentType: "image/jpeg",
+              upsert: false,
+            });
           if (error) {
-            setFieldErrors({ images: `${t(language, "images")}: ${error.message}` });
-            throw new Error(`${t(language, "uploadImageFailed")}: ${error.message}`);
+            setFieldErrors({
+              images: `${t(language, "images")}: ${error.message}`,
+            });
+            throw new Error(
+              `${t(language, "uploadImageFailed")}: ${error.message}`,
+            );
           }
           imagePaths.push(path);
         }
@@ -237,21 +320,35 @@ export default function Home() {
         await loadFeed();
         await loadMine();
       } else {
-        setMyListings((current) => [demoListing(payload, session.profile.id), ...current]);
+        setMyListings((current) => [
+          demoListing(payload, session.profile.id),
+          ...current,
+        ]);
       }
 
       setToast({
         type: "success",
         title: t(language, "postPublished"),
-        message: type === "item" ? t(language, "itemPublishedMessage") : t(language, "jobPublishedMessage"),
+        message:
+          type === "item"
+            ? t(language, "itemPublishedMessage")
+            : t(language, "jobPublishedMessage"),
       });
       setView("my-ads");
     } catch (error) {
       if (error instanceof ZodError) {
         setFieldErrors(localizedFieldErrors(error, language));
-        setToast({ type: "error", title: t(language, "formErrorTitle"), message: t(language, "formErrorMessage") });
+        setToast({
+          type: "error",
+          title: t(language, "formErrorTitle"),
+          message: t(language, "formErrorMessage"),
+        });
       } else {
-        setToast({ type: "error", title: t(language, "submissionFailed"), message: formatLocalizedError(error, language, labels.error) });
+        setToast({
+          type: "error",
+          title: t(language, "submissionFailed"),
+          message: formatLocalizedError(error, language, labels.error),
+        });
       }
     } finally {
       setBusy(false);
@@ -270,11 +367,23 @@ export default function Home() {
         await loadFeed();
         await loadMine();
       } else {
-        setMyListings((current) => current.map((item) => (item.id === listing.id ? { ...item, status: "deleted" } : item)));
+        setMyListings((current) =>
+          current.map((item) =>
+            item.id === listing.id ? { ...item, status: "deleted" } : item,
+          ),
+        );
       }
-      setToast({ type: "success", title: t(language, "adDeleted"), message: t(language, "adDeletedMessage") });
+      setToast({
+        type: "success",
+        title: t(language, "adDeleted"),
+        message: t(language, "adDeletedMessage"),
+      });
     } catch (error) {
-      setToast({ type: "error", title: t(language, "deleteFailed"), message: formatLocalizedError(error, language, labels.error) });
+      setToast({
+        type: "error",
+        title: t(language, "deleteFailed"),
+        message: formatLocalizedError(error, language, labels.error),
+      });
     } finally {
       setBusy(false);
       setBusyMessage("");
@@ -290,24 +399,37 @@ export default function Home() {
       const upgradeType = formData.get("upgradeType") as UpgradeType;
       const listingId = formData.get("listingId")?.toString() || null;
       const receipt = formData.get("receipt");
-      if (!(receipt instanceof File) || receipt.size === 0) throw new Error("Receipt is required");
+      if (!(receipt instanceof File) || receipt.size === 0)
+        throw new Error("Receipt is required");
 
       let screenshotPath = "demo/receipt.jpg";
       if (configured) {
         const path = `${session.profile.id}/receipts/${crypto.randomUUID()}-${receipt.name}`;
-        const { error } = await supabase.storage.from("payment-screenshots").upload(path, receipt, { upsert: false });
+        const { error } = await supabase.storage
+          .from("payment-screenshots")
+          .upload(path, receipt, { upsert: false });
         if (error) throw error;
         screenshotPath = path;
-        await callFunction("request-upgrade", { upgradeType, listingId, screenshotPath });
+        await callFunction("request-upgrade", {
+          upgradeType,
+          listingId,
+          screenshotPath,
+        });
       }
 
       setToast({
         type: "success",
         title: t(language, "paymentSubmitted"),
-        message: interpolate(t(language, "paymentSubmittedMessage"), { amount: upgradeAmounts[upgradeType] }),
+        message: interpolate(t(language, "paymentSubmittedMessage"), {
+          amount: upgradeAmounts[upgradeType],
+        }),
       });
     } catch (error) {
-      setToast({ type: "error", title: t(language, "paymentFailed"), message: formatLocalizedError(error, language, labels.error) });
+      setToast({
+        type: "error",
+        title: t(language, "paymentFailed"),
+        message: formatLocalizedError(error, language, labels.error),
+      });
     } finally {
       setBusy(false);
       setBusyMessage("");
@@ -316,19 +438,33 @@ export default function Home() {
 
   async function reviewPayment(id: string, action: "approve" | "reject") {
     setBusy(true);
-    setBusyMessage(action === "approve" ? t(language, "approvingRequest") : t(language, "rejectingRequest"));
+    setBusyMessage(
+      action === "approve"
+        ? t(language, "approvingRequest")
+        : t(language, "rejectingRequest"),
+    );
 
     try {
-      await callFunction("admin-review-payment", { paymentRequestId: id, action });
+      await callFunction("admin-review-payment", {
+        paymentRequestId: id,
+        action,
+      });
       await loadPayments();
       await loadFeed();
       setToast({
         type: "success",
-        title: action === "approve" ? t(language, "requestApproved") : t(language, "requestRejected"),
+        title:
+          action === "approve"
+            ? t(language, "requestApproved")
+            : t(language, "requestRejected"),
         message: t(language, "paymentQueueUpdated"),
       });
     } catch (error) {
-      setToast({ type: "error", title: t(language, "reviewFailed"), message: formatLocalizedError(error, language, labels.error) });
+      setToast({
+        type: "error",
+        title: t(language, "reviewFailed"),
+        message: formatLocalizedError(error, language, labels.error),
+      });
     } finally {
       setBusy(false);
       setBusyMessage("");
@@ -380,51 +516,61 @@ export default function Home() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs text-ink/60">Dessie</p>
-            <h1 className="text-2xl font-black tracking-normal">{labels.appName}</h1>
+            <h1 className="text-2xl font-black tracking-normal">
+              {labels.appName}
+            </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="relative inline-flex overflow-hidden rounded-full border border-black/10 bg-white p-1">
             <button
-              className="grid h-11 w-11 place-items-center rounded-full border border-black/10 bg-white"
-              onClick={() => setLanguage((value) => (value === "am" ? "en" : "am"))}
+              className={`min-w-[52px] rounded-full px-4 py-2 text-sm font-black transition ${language === "am" ? "bg-leaf text-white" : "text-ink/75"}`}
+              onClick={() => setLanguage("am")}
               aria-label={labels.changeLanguage}
               type="button"
             >
-              <Languages size={20} />
+              አማ
             </button>
-            <div className="relative">
-              <button
-                className="grid h-11 w-11 place-items-center rounded-full border border-black/10 bg-white"
-                onClick={() => setMenuOpen((value) => !value)}
-                aria-label={labels.menu}
-                type="button"
-              >
-                <Menu size={20} />
-              </button>
-              {menuOpen && (
-                <div className="absolute right-0 top-12 w-56 overflow-hidden rounded-lg border border-black/10 bg-white text-sm font-bold shadow-lg">
-                  <a
-                    className="flex items-center gap-2 px-4 py-3 text-ink"
-                    href={appConfig.supportUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <LifeBuoy size={18} />
-                    {labels.support}
-                  </a>
-                  <a
-                    className="flex items-center gap-2 border-t border-black/10 px-4 py-3 text-ink"
-                    href={appConfig.channelUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    <Send size={18} />
-                    {labels.channel}
-                  </a>
-                </div>
-              )}
-            </div>
+            <button
+              className={`min-w-[52px] rounded-full px-4 py-2 text-sm font-black transition ${language === "en" ? "bg-leaf text-white" : "text-ink/75"}`}
+              onClick={() => setLanguage("en")}
+              aria-label={labels.changeLanguage}
+              type="button"
+            >
+              EN
+            </button>
+          </div>
+          <div className="relative">
+            <button
+              className="grid h-11 w-11 place-items-center rounded-full border border-black/10 bg-white"
+              onClick={() => setMenuOpen((value) => !value)}
+              aria-label={labels.menu}
+              type="button"
+            >
+              <Menu size={20} />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-12 w-56 overflow-hidden rounded-lg border border-black/10 bg-white text-sm font-bold shadow-lg">
+                <a
+                  className="flex items-center gap-2 px-4 py-3 text-ink"
+                  href={appConfig.supportUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <LifeBuoy size={18} />
+                  {labels.support}
+                </a>
+                <a
+                  className="flex items-center gap-2 border-t border-black/10 px-4 py-3 text-ink"
+                  href={appConfig.channelUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <Send size={18} />
+                  {labels.channel}
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -436,8 +582,16 @@ export default function Home() {
             <p className="mt-0.5 text-xs text-ink/60">{labels.feedSubtitle}</p>
           </div>
           <div className="grid grid-cols-2 gap-2 rounded-lg bg-white p-1">
-            <TabButton active={tab === "item"} onClick={() => setTab("item")} label={labels.items} />
-            <TabButton active={tab === "job"} onClick={() => setTab("job")} label={labels.jobs} />
+            <TabButton
+              active={tab === "item"}
+              onClick={() => setTab("item")}
+              label={labels.items}
+            />
+            <TabButton
+              active={tab === "job"}
+              onClick={() => setTab("job")}
+              label={labels.jobs}
+            />
           </div>
           <div className="flex h-12 items-center gap-2 rounded-lg border border-black/10 bg-white px-3">
             <Search size={18} />
@@ -461,30 +615,93 @@ export default function Home() {
               </option>
             ))}
           </select>
-          <ListingGrid listings={filteredListings} language={language} onSelect={setSelected} />
+          <ListingGrid
+            listings={filteredListings}
+            language={language}
+            onSelect={setSelected}
+          />
         </section>
       )}
 
-      {view === "post" && <PostForm busy={busy} fieldErrors={fieldErrors} language={language} onSubmit={createListing} />}
-      {view === "my-ads" && (
-        <MyAds busy={busy} listings={myListings} language={language} onDelete={deleteListing} onRequestUpgrade={requestUpgrade} />
+      {view === "post" && (
+        <PostForm
+          busy={busy}
+          fieldErrors={fieldErrors}
+          language={language}
+          onSubmit={createListing}
+        />
       )}
-      {view === "admin" && canAccessAdmin && <AdminQueue busy={busy} language={language} payments={payments} onReview={reviewPayment} />}
+      {view === "my-ads" && (
+        <MyAds
+          busy={busy}
+          listings={myListings}
+          language={language}
+          onDelete={deleteListing}
+          onRequestUpgrade={requestUpgrade}
+        />
+      )}
+      {view === "admin" && canAccessAdmin && (
+        <AdminQueue
+          busy={busy}
+          language={language}
+          payments={payments}
+          onReview={reviewPayment}
+        />
+      )}
 
-      <nav className={`fixed bottom-0 left-1/2 z-30 grid w-full max-w-[480px] -translate-x-1/2 border-t border-black/10 bg-white p-2 ${canAccessAdmin ? "grid-cols-4" : "grid-cols-3"}`}>
-        <NavButton active={view === "feed"} icon={<Megaphone size={19} />} label={labels.feed} onClick={() => setView("feed")} />
-        <NavButton active={view === "post"} icon={<Plus size={19} />} label={labels.post} onClick={() => setView("post")} />
-        <NavButton active={view === "my-ads"} icon={<ReceiptText size={19} />} label={labels.myAds} onClick={() => setView("my-ads")} />
+      <nav
+        className={`fixed bottom-0 left-1/2 z-30 grid w-full max-w-[480px] -translate-x-1/2 border-t border-black/10 bg-white p-2 ${canAccessAdmin ? "grid-cols-4" : "grid-cols-3"}`}
+      >
+        <NavButton
+          active={view === "feed"}
+          icon={<Megaphone size={19} />}
+          label={labels.feed}
+          onClick={() => setView("feed")}
+        />
+        <NavButton
+          active={view === "post"}
+          icon={<Plus size={19} />}
+          label={labels.post}
+          onClick={() => setView("post")}
+        />
+        <NavButton
+          active={view === "my-ads"}
+          icon={<ReceiptText size={19} />}
+          label={labels.myAds}
+          onClick={() => setView("my-ads")}
+        />
         {canAccessAdmin && (
-          <NavButton active={view === "admin"} icon={<Briefcase size={19} />} label={labels.admin} onClick={() => setView("admin")} />
+          <NavButton
+            active={view === "admin"}
+            icon={<Briefcase size={19} />}
+            label={labels.admin}
+            onClick={() => setView("admin")}
+          />
         )}
       </nav>
 
       {selected && (
-        <ListingSheet listing={selected} language={language} onImagePreview={setImagePreview} onClose={() => setSelected(null)} />
+        <ListingSheet
+          listing={selected}
+          language={language}
+          onImagePreview={setImagePreview}
+          onClose={() => setSelected(null)}
+        />
       )}
-      {imagePreview && <ImagePreview language={language} src={imagePreview} onClose={() => setImagePreview(null)} />}
-      {toast && <ToastView language={language} toast={toast} onClose={() => setToast(null)} />}
+      {imagePreview && (
+        <ImagePreview
+          language={language}
+          src={imagePreview}
+          onClose={() => setImagePreview(null)}
+        />
+      )}
+      {toast && (
+        <ToastView
+          language={language}
+          toast={toast}
+          onClose={() => setToast(null)}
+        />
+      )}
       {busy && (
         <div className="fixed inset-0 z-40 grid place-items-center bg-white/70 text-sm font-bold backdrop-blur-sm">
           <LoadingState label={busyMessage || labels.loading} />
@@ -541,9 +758,17 @@ function localizedFieldErrors(error: ZodError, language: Language) {
     if (!key) continue;
     const label = fieldLabels[key] ?? key;
     const message = issue.message.toLowerCase();
-    if (message.includes("phone") || message.includes("invalid") || message.includes("regex")) {
+    if (
+      message.includes("phone") ||
+      message.includes("invalid") ||
+      message.includes("regex")
+    ) {
       nextErrors[key] = `${label}: ${t(language, "invalid")}`;
-    } else if (message.includes("maximum") || message.includes("too") || message.includes("at most")) {
+    } else if (
+      message.includes("maximum") ||
+      message.includes("too") ||
+      message.includes("at most")
+    ) {
       nextErrors[key] = `${label}: ${t(language, "tooLong")}`;
     } else {
       nextErrors[key] = `${label}: ${t(language, "required")}`;

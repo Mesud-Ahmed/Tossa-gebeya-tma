@@ -3,15 +3,15 @@ import type { Language } from "./types";
 export const copy = {
   am: {
     appName: "ጦሳ ገበያ",
-    feedTitle: "የደሴ ማህበረሰብ ሰሌዳ",
+    feedTitle: "የደሴ ማህበረሰብ መድረክ",
     feedSubtitle: "የደሴ እቃዎች፣ ስራዎች እና አገልግሎቶች",
     feed: "ፊድ",
     items: "የሚሸጡ እቃዎች",
     jobs: "ስራዎች",
     post: "ለጥፍ",
     myAds: "የኔ ማስታወቂያ",
-    myListingsTitle: "የኔ ማስታወቂያዎች / My Listings",
-    admin: "አስተዳዳሪ",
+    myListingsTitle: "የኔ ማስታወቂያዎች",
+    admin: "admin",
     search: "ፈልግ",
     allCategories: "ሁሉም ምድቦች",
     newest: "አዲስ",
@@ -47,7 +47,7 @@ export const copy = {
     new: "አዲስ",
     used: "ያገለገለ",
     images: "ፎቶዎች",
-    imageHelp: "ቢያንስ 1 ፎቶ ያስፈልጋል። እስከ 4 ፎቶዎች፣ እያንዳንዱ እስከ 10MB።",
+    imageHelp: "ቢያንስ 1 ፎቶ ያስፈልጋል። እስከ 4 ፎቶዎች ይላኩ።",
     chooseImages: "ፎቶ ይምረጡ",
     receiptHelp: "የክፍያ ማረጋገጫዎን እዚህ ያስገቡ",
     location: "አድራሻ",
@@ -76,7 +76,7 @@ export const copy = {
     deleteFailed: "መሰረዝ አልተቻለም",
     submittingPayment: "የክፍያ ጥያቄዎን በመላክ ላይ...",
     paymentSubmitted: "የክፍያ ጥያቄው ተልኳል",
-    paymentSubmittedMessage: "አስተዳዳሪ የ{amount} ETB የማሻሻያ ጥያቄዎን ይመረምራል።",
+    paymentSubmittedMessage: "አስተዳዳሪው የ{amount} ETB የማሻሻያ ጥያቄዎን ይመረምራል።",
     paymentFailed: "የክፍያ ጥያቄው አልተሳካም",
     approvingRequest: "ጥያቄው በመጽደቅ ላይ...",
     rejectingRequest: "ጥያቄው በመቀበል ላይ...",
@@ -89,7 +89,7 @@ export const copy = {
     loginFailed: "መግባት አልተሳካም",
     paidUpgrades: "የሚከፈልባቸው ማሻሻያዎች",
     upgradeIntro: "የሚፈልጉትን ማሻሻያ ይምረጡ፣ ክፍያ ያድርጉ፣ ከዚያ ስክሪንሾት ይላኩ።",
-    extendBenefit: "7 ተጨማሪ ቀናት የመታየት ጊዜ ይጨምራል።",
+    extendBenefit: "ማስታወቂያዎ ለ 7 ተጨማሪ ቀናት እንዲታይ ያደርጋል።",
     boostBenefit: "ማስታወቂያዎ ለ3 ቀናት ከላይ ይታያል።",
     overflowBenefit: "በሳምንታዊ ነጻ ገደብ ላይ 1 ተጨማሪ ፖስት ያገኛሉ።",
     chooseAd: "ማስታወቂያ ይምረጡ",
@@ -110,6 +110,9 @@ export const copy = {
     adType: "የማስታወቂያ አይነት",
     unknown: "አይታወቅም",
     extraPostSlot: "ተጨማሪ ፖስት",
+    copy: "ኮፒ",
+    copied: "ተቀምጧል",
+    loadPaymentsFailed: "የታገዘ ክፍያ ጥያቄዎችን ማሳየት አልተቻለም",
   },
   en: {
     appName: "Tossa Gebaya",
@@ -120,7 +123,7 @@ export const copy = {
     jobs: "Job Openings",
     post: "Post",
     myAds: "My Ads",
-    myListingsTitle: "የኔ ማስታወቂያዎች / My Listings",
+    myListingsTitle: "My Listings",
     admin: "Admin",
     search: "Search",
     allCategories: "All categories",
@@ -172,7 +175,8 @@ export const copy = {
     formErrorTitle: "Fix the highlighted fields",
     formErrorMessage: "Missing or invalid fields are marked below.",
     submissionFailed: "Could not submit listing",
-    networkError: "A network problem occurred. Please check your connection and try again.",
+    networkError:
+      "A network problem occurred. Please check your connection and try again.",
     uploadImageFailed: "Could not upload photo",
     saveListingFailed: "Could not save listing",
     preparingPost: "Preparing your post...",
@@ -186,7 +190,8 @@ export const copy = {
     deleteFailed: "Delete failed",
     submittingPayment: "Submitting your payment request...",
     paymentSubmitted: "Payment request submitted",
-    paymentSubmittedMessage: "Admin will review your {amount} ETB upgrade request.",
+    paymentSubmittedMessage:
+      "Admin will review your {amount} ETB upgrade request.",
     paymentFailed: "Payment request failed",
     approvingRequest: "Approving request...",
     rejectingRequest: "Rejecting request...",
@@ -198,7 +203,8 @@ export const copy = {
     loadMyAdsFailed: "Could not load your ads",
     loginFailed: "Login failed",
     paidUpgrades: "Paid upgrades",
-    upgradeIntro: "Choose an upgrade, pay, then upload a screenshot for admin review.",
+    upgradeIntro:
+      "Choose an upgrade, pay, then upload a screenshot for admin review.",
     extendBenefit: "Adds 7 more days of visibility to an existing ad.",
     boostBenefit: "Pins your ad near the top of the feed for 3 days.",
     overflowBenefit: "Adds 1 extra post beyond the weekly free limit.",
@@ -209,7 +215,8 @@ export const copy = {
     open: "Open",
     noDescription: "No details were added.",
     paymentVerification: "Payment verification",
-    paymentVerificationHelp: "Review the ad, requester, amount, and receipt before approving an upgrade.",
+    paymentVerificationHelp:
+      "Review the ad, requester, amount, and receipt before approving an upgrade.",
     noPendingPayments: "No pending payments",
     openReceipt: "Open receipt screenshot",
     approve: "Approve",
@@ -220,6 +227,9 @@ export const copy = {
     adType: "Ad type",
     unknown: "Unknown",
     extraPostSlot: "Extra post slot",
+    copy: "Copy",
+    copied: "Copied",
+    loadPaymentsFailed: "Could not load pending payments",
   },
 } satisfies Record<Language, Record<string, string>>;
 
@@ -229,21 +239,38 @@ export function t(language: Language, key: CopyKey) {
   return copy[language][key] ?? copy.en[key];
 }
 
-export function interpolate(template: string, values: Record<string, string | number>) {
+export function interpolate(
+  template: string,
+  values: Record<string, string | number>,
+) {
   return template.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
 }
 
 export function localizeKnownError(language: Language, message: string) {
   const normalized = message.toLowerCase();
-  if (normalized.includes("failed to fetch") || normalized.includes("network") || normalized.includes("load failed")) {
+  if (
+    normalized.includes("failed to fetch") ||
+    normalized.includes("network") ||
+    normalized.includes("load failed")
+  ) {
     return t(language, "networkError");
   }
-  if (normalized.includes("receipt") || normalized.includes("screenshot")) return t(language, "receipt") + ": " + t(language, "required");
-  if (normalized.includes("weekly free post limit")) return language === "am" ? "የሳምንታዊ ነጻ ፖስት ገደብ ደርሷል።" : "Weekly free post limit reached.";
+  if (normalized.includes("receipt") || normalized.includes("screenshot"))
+    return t(language, "receipt") + ": " + t(language, "required");
+  if (normalized.includes("weekly free post limit"))
+    return language === "am"
+      ? "የሳምንታዊ ነጻ ፖስት ገደብ ደርሷል።"
+      : "Weekly free post limit reached.";
   if (normalized.includes("maximum 4 images")) return t(language, "maxImages");
-  if (normalized.includes("invalid phone")) return t(language, "phone") + ": " + t(language, "invalid");
-  if (normalized.includes("listing not found")) return language === "am" ? "ማስታወቂያው አልተገኘም።" : "Listing not found.";
-  if (normalized.includes("admin only")) return language === "am" ? "ይህ ክፍል ለአስተዳዳሪ ብቻ ነው።" : "This area is for admins only.";
-  if (normalized.includes("image") && normalized.includes("required")) return t(language, "images") + ": " + t(language, "required");
+  if (normalized.includes("invalid phone"))
+    return t(language, "phone") + ": " + t(language, "invalid");
+  if (normalized.includes("listing not found"))
+    return language === "am" ? "ማስታወቂያው አልተገኘም።" : "Listing not found.";
+  if (normalized.includes("admin only"))
+    return language === "am"
+      ? "ይህ ክፍል ለአስተዳዳሪ ብቻ ነው።"
+      : "This area is for admins only.";
+  if (normalized.includes("image") && normalized.includes("required"))
+    return t(language, "images") + ": " + t(language, "required");
   return message;
 }

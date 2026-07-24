@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Eye, Star } from "lucide-react";
 import { categoryLabel } from "@/lib/categories";
 import { t } from "@/lib/i18n";
+import { formatCurrency, formatEthiopianDate } from "@/lib/app-utils";
 import type { Language, Listing } from "@/lib/types";
 import { isCurrentlyBoosted } from "@/lib/validation";
 
@@ -17,7 +18,11 @@ export function ListingGrid({
   onSelect: (listing: Listing) => void;
 }) {
   if (listings.length === 0) {
-    return <p className="py-12 text-center text-sm text-ink/60">{t(language, "empty")}</p>;
+    return (
+      <p className="py-12 text-center text-sm text-ink/60">
+        {t(language, "empty")}
+      </p>
+    );
   }
 
   return (
@@ -33,18 +38,30 @@ export function ListingGrid({
             {listing.type === "item" && (
               <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-md bg-mist">
                 {listing.listing_images?.[0]?.public_url && (
-                  <img className="h-full w-full object-cover" src={listing.listing_images[0].public_url} alt="" />
+                  <img
+                    className="h-full w-full object-cover"
+                    src={listing.listing_images[0].public_url}
+                    alt=""
+                  />
                 )}
               </div>
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
-                <h2 className="line-clamp-2 text-base font-black">{listing.title}</h2>
-                {isCurrentlyBoosted(listing) && <Star className="shrink-0 fill-gold text-gold" size={18} />}
+                <h2 className="line-clamp-2 text-base font-black">
+                  {listing.title}
+                </h2>
+                {isCurrentlyBoosted(listing) && (
+                  <Star className="shrink-0 fill-gold text-gold" size={18} />
+                )}
               </div>
               <p className="mt-1 text-sm text-ink/65">{listing.location}</p>
               <p className="mt-2 font-black text-leaf">
-                {listing.type === "item" ? `${listing.price ?? "-"} ETB` : listing.salary ? `${listing.salary} ETB` : t(language, "open")}
+                {listing.type === "item"
+                  ? formatCurrency(listing.price)
+                  : listing.salary
+                    ? formatCurrency(listing.salary)
+                    : t(language, "open")}
               </p>
               {listing.category && (
                 <p className="mt-1 text-xs font-bold text-ink/45">
@@ -73,7 +90,10 @@ export function ListingSheet({
   const images = useMemo(
     () =>
       listing.type === "item"
-        ? [...(listing.listing_images?.filter((image) => image.public_url) ?? [])].sort((a, b) => a.sort_order - b.sort_order)
+        ? [
+            ...(listing.listing_images?.filter((image) => image.public_url) ??
+              []),
+          ].sort((a, b) => a.sort_order - b.sort_order)
         : [],
     [listing],
   );
@@ -88,12 +108,18 @@ export function ListingSheet({
   function scrollToImage(index: number) {
     const carousel = carouselRef.current;
     if (!carousel) return;
-    carousel.scrollTo({ left: carousel.clientWidth * index, behavior: "smooth" });
+    carousel.scrollTo({
+      left: carousel.clientWidth * index,
+      behavior: "smooth",
+    });
     setActiveImage(index);
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end bg-black/35" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-40 flex items-end bg-black/35"
+      onClick={onClose}
+    >
       <section
         className="max-h-[88dvh] w-full max-w-[480px] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-sheet"
         onClick={(event) => event.stopPropagation()}
@@ -106,8 +132,12 @@ export function ListingSheet({
               className="flex snap-x snap-mandatory overflow-x-auto rounded-lg scroll-smooth"
               onScroll={(event) => {
                 const target = event.currentTarget;
-                const nextIndex = Math.round(target.scrollLeft / Math.max(target.clientWidth, 1));
-                setActiveImage(Math.min(Math.max(nextIndex, 0), images.length - 1));
+                const nextIndex = Math.round(
+                  target.scrollLeft / Math.max(target.clientWidth, 1),
+                );
+                setActiveImage(
+                  Math.min(Math.max(nextIndex, 0), images.length - 1),
+                );
               }}
             >
               {images.map((image) => (
@@ -115,9 +145,15 @@ export function ListingSheet({
                   key={image.id}
                   className="relative grid h-52 min-w-full snap-center place-items-center overflow-hidden bg-mist"
                   type="button"
-                  onClick={() => image.public_url && onImagePreview(image.public_url)}
+                  onClick={() =>
+                    image.public_url && onImagePreview(image.public_url)
+                  }
                 >
-                  <img className="h-full w-full object-cover" src={image.public_url} alt="" />
+                  <img
+                    className="h-full w-full object-cover"
+                    src={image.public_url}
+                    alt=""
+                  />
                   <span className="absolute bottom-3 right-3 grid h-9 w-9 place-items-center rounded-full bg-white/90 text-ink shadow">
                     <Eye size={18} />
                   </span>
@@ -144,11 +180,32 @@ export function ListingSheet({
         )}
         <h2 className="mt-4 text-2xl font-black">{listing.title}</h2>
         <p className="mt-1 text-sm text-ink/60">{listing.location}</p>
-        <p className="mt-4 whitespace-pre-wrap text-sm leading-6">{listing.description || t(language, "noDescription")}</p>
-        <div className="mt-5">
-          <a className="grid h-12 place-items-center rounded-lg bg-leaf font-black text-white" href={`tel:${listing.phone}`}>
+        <p className="mt-2 text-xs text-ink/60">
+          {t(language, "submitted")}: {formatEthiopianDate(listing.created_at)}
+        </p>
+        <p className="mt-2 text-xs text-ink/60">
+          {t(language, "expires")}: {formatEthiopianDate(listing.expires_at)}
+        </p>
+        <p className="mt-4 whitespace-pre-wrap text-sm leading-6">
+          {listing.description || t(language, "noDescription")}
+        </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <a
+            className="grid h-12 place-items-center rounded-lg bg-leaf font-black text-white"
+            href={`tel:${listing.phone}`}
+          >
             {t(language, "call")}
           </a>
+          {listing.telegram_username ? (
+            <a
+              className="grid h-12 place-items-center rounded-lg border border-black/10 bg-white font-black text-ink"
+              href={`https://t.me/${listing.telegram_username}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t(language, "telegram")}
+            </a>
+          ) : null}
         </div>
       </section>
     </div>

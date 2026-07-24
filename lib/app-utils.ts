@@ -1,7 +1,24 @@
 import { ZodError } from "zod";
 import { localizeKnownError, t } from "./i18n";
 import { getStoragePublicUrl } from "./supabase";
+import { toEthiopian } from "ethiopian-calendar-new";
 import type { Language, Listing, UpgradeType } from "./types";
+
+const ethiopianMonths = [
+  "መስከረም",
+  "ጥቅምት",
+  "ኅዳር",
+  "ታህሳስ",
+  "ጥር",
+  "የካቲት",
+  "መጋቢት",
+  "ሚያዝያ",
+  "ግንቦት",
+  "ሰኔ",
+  "ሐምሌ",
+  "ነሐሴ",
+  "ጳጉሜ",
+];
 
 export function withImageUrls(rows: Listing[]): Listing[] {
   return rows.map((listing) => ({
@@ -13,6 +30,25 @@ export function withImageUrls(rows: Listing[]): Listing[] {
   }));
 }
 
+export function formatEthiopianDate(
+  value: string | number | Date | null | undefined,
+) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  const { year, month, day } = toEthiopian(
+    date.getFullYear(),
+    date.getMonth() + 1,
+    date.getDate(),
+  );
+  return `${ethiopianMonths[month - 1]} ${day}, ${year}`;
+}
+
+export function formatCurrency(value: number | null | undefined) {
+  if (value == null) return "-";
+  return `${new Intl.NumberFormat("en-US").format(value)} ETB`;
+}
+
 export function formatError(error: unknown, fallback: string) {
   if (error instanceof ZodError) {
     return error.issues.map((issue) => issue.message).join(". ");
@@ -21,7 +57,11 @@ export function formatError(error: unknown, fallback: string) {
   return fallback;
 }
 
-export function formatLocalizedError(error: unknown, language: Language, fallback: string) {
+export function formatLocalizedError(
+  error: unknown,
+  language: Language,
+  fallback: string,
+) {
   const message = formatError(error, fallback);
   return localizeKnownError(language, message);
 }

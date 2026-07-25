@@ -29,7 +29,7 @@ export function buildListingPreviewText(
     "",
     `💰 ${amountText}`,
     "",
-    "🔗 ማስታወቂያውን በሙሉ ይመልከቱ / Open in App",
+    "🔗 👇ማስታወቂያውን በሙሉ ይመልከቱ / Open in App👇",
     link,
   ].join("\n");
 }

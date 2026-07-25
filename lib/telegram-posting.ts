@@ -39,8 +39,12 @@ export function buildListingPreviewUrl(
   options?: { botUsername?: string; appUrl?: string },
 ) {
   const botUsername = options?.botUsername?.trim();
+  // Many Telegram clients and bot configurations do not reliably support
+  // the `?startapp=` deep link parameter. Fall back to posting the bot's
+  // public link (which opens the bot chat) so users can tap the bot to
+  // open the Mini App from there.
   if (botUsername) {
-    return `https://t.me/${botUsername}?startapp=listing_${listingId}`;
+    return `https://t.me/${botUsername}`;
   }
 
   const appUrl = options?.appUrl?.trim();

@@ -28,6 +28,6 @@ describe("listing preview helpers", () => {
       buildListingPreviewUrl("listing-123", {
         botUsername: "tossa_gebeya_bot",
       }),
-    ).toBe("https://t.me/tossa_gebeya_bot?startapp=listing_listing-123");
+    ).toBe("https://t.me/tossa_gebeya_bot");
   });
 });

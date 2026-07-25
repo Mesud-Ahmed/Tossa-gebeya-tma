@@ -18,7 +18,7 @@ export function buildListingPreviewText(
   link: string,
 ) {
   const label =
-    listing.type === "job" ? "📌 [የሚስራ ይፈልጋል / Job]" : "📌 [የሚሸጥ / For Sale]";
+    listing.type === "job" ? "📌 [ስራ / Job]" : "📌 [የሚሸጥ / For Sale]";
   const amount = listing.type === "item" ? listing.price : listing.salary;
   const amountText =
     typeof amount === "number" ? `${formatAmount(amount)} ETB` : "ተጨማሪ መረጃ";

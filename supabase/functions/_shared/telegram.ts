@@ -2,6 +2,11 @@ import {
   buildTelegramCheckString,
   computeTelegramCheckHash,
 } from "../../../lib/telegram-auth.ts";
+import {
+  buildListingPreviewText,
+  buildListingPreviewUrl,
+  normalizeTelegramChatId,
+} from "../../../lib/telegram-posting.ts";
 
 export async function verifyTelegramInitData(initData: string) {
   const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN");
@@ -39,8 +44,43 @@ export async function sendTelegramMessage(chatId: string, text: string) {
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chatId, text }),
+      body: JSON.stringify({ chat_id: normalizeTelegramChatId(chatId), text }),
     },
   );
   if (!response.ok) throw new Error(await response.text());
+}
+
+export function getTelegramGroupChatId() {
+  return (
+    Deno.env.get("TELEGRAM_GROUP_CHAT_ID") ??
+    Deno.env.get("NEXT_PUBLIC_TELEGRAM_GROUP_CHAT_ID") ??
+    Deno.env.get("NEXT_PUBLIC_TELEGRAM_GROUP_URL") ??
+    ""
+  );
+}
+
+export async function sendListingPreviewToGroup(listing: {
+  id: string;
+  type: "item" | "job";
+  title: string;
+  location: string;
+  price?: number | null;
+  salary?: number | null;
+}) {
+  const chatId = getTelegramGroupChatId();
+  if (!chatId) return false;
+
+  const appUrl =
+    Deno.env.get("NEXT_PUBLIC_MINI_APP_URL") ??
+    Deno.env.get("NEXT_PUBLIC_APP_URL") ??
+    "";
+  const botUsername =
+    Deno.env.get("TELEGRAM_BOT_USERNAME") ??
+    Deno.env.get("NEXT_PUBLIC_TELEGRAM_BOT_USERNAME") ??
+    "";
+  const link = buildListingPreviewUrl(listing.id, { appUrl, botUsername });
+  const text = buildListingPreviewText(listing, link);
+
+  await sendTelegramMessage(chatId, text);
+  return true;
 }

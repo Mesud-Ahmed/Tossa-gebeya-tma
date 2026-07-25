@@ -3,7 +3,8 @@ import { adminIds, adminClient } from "../_shared/supabase.ts";
 import { verifyTelegramInitData } from "../_shared/telegram.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
 
   try {
     const { initData } = await req.json();
@@ -18,9 +19,9 @@ Deno.serve(async (req) => {
           username: user.username ?? null,
           first_name: user.first_name ?? null,
           last_name: user.last_name ?? null,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         },
-        { onConflict: "telegram_id" }
+        { onConflict: "telegram_id" },
       )
       .select()
       .single();
@@ -30,10 +31,14 @@ Deno.serve(async (req) => {
     return json({
       profile: {
         ...data,
-        is_admin: adminIds().includes(String(user.id))
-      }
+        telegram_id: String(data.telegram_id),
+        is_admin: adminIds().includes(String(user.id)),
+      },
     });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Auth failed" }, 401);
+    return json(
+      { error: error instanceof Error ? error.message : "Auth failed" },
+      401,
+    );
   }
 });

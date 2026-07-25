@@ -24,6 +24,6 @@ export function adminIds() {
     ""
   )
     .split(",")
-    .map((id) => id.trim())
+    .map((id) => String(id).trim())
     .filter(Boolean);
 }

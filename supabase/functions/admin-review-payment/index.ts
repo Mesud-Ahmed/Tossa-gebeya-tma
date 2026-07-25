@@ -1,17 +1,22 @@
 import { corsHeaders, json } from "../_shared/cors.ts";
 import { requireProfile } from "../_shared/auth.ts";
 import { adminIds } from "../_shared/supabase.ts";
-import { sendTelegramMessage } from "../_shared/telegram.ts";
+import {
+  sendListingPreviewToGroup,
+  sendTelegramMessage,
+} from "../_shared/telegram.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response("ok", { headers: corsHeaders });
 
   try {
     const { supabase, telegramId } = await requireProfile(req);
     if (!adminIds().includes(telegramId)) throw new Error("Admin only");
 
     const { paymentRequestId, action } = await req.json();
-    if (!["approve", "reject"].includes(action)) throw new Error("Invalid action");
+    if (!["approve", "reject"].includes(action))
+      throw new Error("Invalid action");
 
     const { data: payment, error: paymentError } = await supabase
       .from("payment_requests")
@@ -23,29 +28,49 @@ Deno.serve(async (req) => {
 
     if (action === "approve") {
       if (payment.upgrade_type === "extend" && payment.listing_id) {
-        const { data: listing, error } = await supabase.from("listings").select("expires_at").eq("id", payment.listing_id).single();
+        const { data: listing, error } = await supabase
+          .from("listings")
+          .select("expires_at")
+          .eq("id", payment.listing_id)
+          .single();
         if (error) throw error;
-        const base = Math.max(new Date(listing.expires_at).getTime(), Date.now());
-        const expiresAt = new Date(base + 7 * 24 * 60 * 60 * 1000).toISOString();
-        await supabase.from("listings").update({ status: "active", expires_at: expiresAt }).eq("id", payment.listing_id);
+        const base = Math.max(
+          new Date(listing.expires_at).getTime(),
+          Date.now(),
+        );
+        const expiresAt = new Date(
+          base + 7 * 24 * 60 * 60 * 1000,
+        ).toISOString();
+        await supabase
+          .from("listings")
+          .update({ status: "active", expires_at: expiresAt })
+          .eq("id", payment.listing_id);
       }
 
       if (payment.upgrade_type === "boost" && payment.listing_id) {
-        const boostedUntil = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
-        await supabase.from("listings").update({ is_boosted: true, boosted_until: boostedUntil }).eq("id", payment.listing_id);
+        const boostedUntil = new Date(
+          Date.now() + 3 * 24 * 60 * 60 * 1000,
+        ).toISOString();
+        await supabase
+          .from("listings")
+          .update({ is_boosted: true, boosted_until: boostedUntil })
+          .eq("id", payment.listing_id);
       }
 
       if (payment.upgrade_type === "overflow") {
         await supabase.from("extra_post_slots").insert({
           user_id: payment.user_id,
-          source_payment_request_id: payment.id
+          source_payment_request_id: payment.id,
         });
       }
     }
 
     await supabase
       .from("payment_requests")
-      .update({ status: action === "approve" ? "approved" : "rejected", reviewed_at: new Date().toISOString() })
+      .update({
+        status: action === "approve" ? "approved" : "rejected",
+        reviewed_at: new Date().toISOString(),
+      })
       .eq("id", payment.id);
 
     const { data: requester } = await supabase
@@ -58,20 +83,50 @@ Deno.serve(async (req) => {
       try {
         await sendTelegramMessage(
           requester.telegram_id,
-          reviewMessage(requester.language ?? "am", action, payment.upgrade_type),
+          reviewMessage(
+            requester.language ?? "am",
+            action,
+            payment.upgrade_type,
+          ),
         );
       } catch (messageError) {
-        console.error("Payment review Telegram notification failed", messageError);
+        console.error(
+          "Payment review Telegram notification failed",
+          messageError,
+        );
+      }
+    }
+
+    if (action === "approve" && payment.listing_id) {
+      const { data: listingForPost } = await supabase
+        .from("listings")
+        .select("id, type, title, location, price, salary")
+        .eq("id", payment.listing_id)
+        .maybeSingle();
+
+      if (listingForPost) {
+        try {
+          await sendListingPreviewToGroup(listingForPost);
+        } catch (messageError) {
+          console.error("Listing preview Telegram post failed", messageError);
+        }
       }
     }
 
     return json({ ok: true });
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Review failed" }, 403);
+    return json(
+      { error: error instanceof Error ? error.message : "Review failed" },
+      403,
+    );
   }
 });
 
-function reviewMessage(language: string, action: "approve" | "reject", upgradeType: string) {
+function reviewMessage(
+  language: string,
+  action: "approve" | "reject",
+  upgradeType: string,
+) {
   if (language === "en") {
     return action === "approve"
       ? [
@@ -90,11 +145,11 @@ function reviewMessage(language: string, action: "approve" | "reject", upgradeTy
     ? [
         `✅ የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ ጸድቋል!`,
         "ማሻሻያው በማስታወቂያዎ ላይ ተተግብሯል።",
-        "ጦሳ ገበያን ስለመረጡ እናመሰግናለን።"
+        "ጦሳ ገበያን ስለመረጡ እናመሰግናለን።",
       ].join("\n")
     : [
         `❌ የ${upgradeLabel(upgradeType, "am")} ጥያቄዎ አልጸደቀም።`,
-        "ለእርዳታ የደንበኞች ድጋፍን በ @tossa_gebeya_support ያግኙ። "
+        "ለእርዳታ የደንበኞች ድጋፍን በ @tossa_gebeya_support ያግኙ። ",
       ].join("\n");
 }
 

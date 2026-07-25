@@ -95,14 +95,20 @@ export default function Home() {
 
         try {
           const verified = await verifyTelegram(initData);
+          const verifiedTelegramId = String(verified.profile.telegram_id);
           const isAdmin = Boolean(
             verified.profile.is_admin ||
-            appConfig.adminTelegramIds.includes(verified.profile.telegram_id),
+            appConfig.adminTelegramIds.includes(verifiedTelegramId) ||
+            appConfig.adminTelegramIds.includes(fallbackAdminId ?? ""),
           );
           setSession({
             ...verified,
             initData,
-            profile: { ...verified.profile, is_admin: isAdmin },
+            profile: {
+              ...verified.profile,
+              telegram_id: verifiedTelegramId,
+              is_admin: isAdmin,
+            },
           });
           setLanguage(verified.profile.language ?? "am");
         } catch (error) {
@@ -148,6 +154,23 @@ export default function Home() {
   useEffect(() => {
     if (view === "admin" && !canAccessAdmin) setView("feed");
   }, [canAccessAdmin, view]);
+
+  useEffect(() => {
+    if (!listings.length) return;
+
+    const params = new URLSearchParams(window.location.search);
+    const startapp = params.get("startapp") ?? "";
+    const listingId =
+      params.get("listing") ??
+      (startapp.startsWith("listing_")
+        ? startapp.replace("listing_", "")
+        : null);
+
+    if (!listingId) return;
+
+    const target = listings.find((listing) => listing.id === listingId);
+    if (target) setSelected(target);
+  }, [listings]);
 
   useEffect(() => setCategory("all"), [tab]);
 

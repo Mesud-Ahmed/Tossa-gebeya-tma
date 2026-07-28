@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Eye, Star } from "lucide-react";
+import { Eye, Star, X } from "lucide-react";
 import { categoryLabel } from "@/lib/categories";
 import { t } from "@/lib/i18n";
 import { formatCurrency, formatEthiopianDate } from "@/lib/app-utils";
@@ -121,9 +121,17 @@ export function ListingSheet({
       onClick={onClose}
     >
       <section
-        className="max-h-[88dvh] w-full max-w-[480px] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-sheet"
+        className="relative max-h-[88dvh] w-full max-w-[480px] overflow-y-auto rounded-t-2xl bg-white p-4 shadow-sheet"
         onClick={(event) => event.stopPropagation()}
       >
+        <button
+          className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-black/5 text-ink transition hover:bg-black/10"
+          onClick={onClose}
+          type="button"
+          aria-label={t(language, "close")}
+        >
+          <X size={18} />
+        </button>
         <div className="mx-auto mb-4 h-1 w-12 rounded-full bg-black/20" />
         {images.length > 0 && (
           <div className="relative">

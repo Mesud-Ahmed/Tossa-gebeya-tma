@@ -125,7 +125,7 @@ export function ListingSheet({
         onClick={(event) => event.stopPropagation()}
       >
         <button
-          className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-black/5 text-ink transition hover:bg-black/10"
+          className="absolute right-4 top-2 grid h-10 w-10 place-items-center rounded-full bg-black/5 text-ink transition hover:bg-black/10"
           onClick={onClose}
           type="button"
           aria-label={t(language, "close")}
